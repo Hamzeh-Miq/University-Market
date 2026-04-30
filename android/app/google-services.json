@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "257005347388",
+    "project_id": "university-market-2b9d7",
+    "storage_bucket": "university-market-2b9d7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:257005347388:android:eca6f7dc57468e1a04d939",
+        "android_client_info": {
+          "package_name": "com.example.university_market"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyApfHFnh_HrlDMb_6OcSpLScW8GhyDAd4Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
