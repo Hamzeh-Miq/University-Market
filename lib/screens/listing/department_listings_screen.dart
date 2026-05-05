@@ -250,7 +250,7 @@ class _ProductListTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Placeholder image box
+              // Thumbnail
               Container(
                 width: 72,
                 height: 72,
@@ -258,8 +258,21 @@ class _ProductListTile extends StatelessWidget {
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.image_outlined,
-                    color: AppColors.primary, size: 32),
+                clipBehavior: Clip.antiAlias,
+                child: product.images.isNotEmpty
+                    ? Image.network(
+                        product.images.first,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const Center(
+                            child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.error_outline, color: AppColors.error),
+                      )
+                    : const Icon(Icons.image_outlined, color: AppColors.primary, size: 32),
               ),
               const SizedBox(width: 14),
               Expanded(

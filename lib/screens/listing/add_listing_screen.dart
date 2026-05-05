@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../constants/app_colors.dart';
 import '../../data/dummy_categories.dart';
 import '../../models/product_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/product_service.dart';
+import '../../services/storage_service.dart';
 
 /// Screen for posting a new product listing to the marketplace.
 class AddListingScreen extends ConsumerStatefulWidget {
@@ -20,6 +23,9 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
   final _descController = TextEditingController();
   final _priceController = TextEditingController();
   final _courseController = TextEditingController();
+
+  final List<File> _selectedImages = [];
+  final ImagePicker _picker = ImagePicker();
 
   String? _selectedCategory;
   bool _isLoading = false;
@@ -51,6 +57,65 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
     );
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(source: source);
+      if (image != null) {
+        setState(() {
+          if (_selectedImages.length < 5) {
+            _selectedImages.add(File(image.path));
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Maximum 5 images allowed.')),
+            );
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking image: $e')),
+        );
+      }
+    }
+  }
+
+  void _showImagePickerModal() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Photo Library'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Camera'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+    });
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -65,6 +130,15 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
     setState(() => _isLoading = true);
 
     try {
+      List<String> uploadedUrls = [];
+      if (_selectedImages.isNotEmpty) {
+        final storageService = StorageService();
+        for (var file in _selectedImages) {
+          final url = await storageService.compressAndUploadImage(file);
+          uploadedUrls.add(url);
+        }
+      }
+
       final product = ProductModel(
         productId: '',
         sellerId: user.uid,
@@ -75,7 +149,7 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
         courseCode: _courseController.text.trim().isEmpty
             ? null
             : _courseController.text.trim().toUpperCase(),
-        images: const [],
+        images: uploadedUrls,
         status: 'Pending',
         createdAt: DateTime.now(),
       );
@@ -123,28 +197,76 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Image placeholder
-              Container(
-                height: 160,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.07),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                      style: BorderStyle.solid),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_photo_alternate_outlined,
-                        size: 48,
-                        color: AppColors.primary.withValues(alpha: 0.6)),
-                    const SizedBox(height: 8),
-                    Text('Add Photos (coming soon)',
-                        style: TextStyle(
-                            color: AppColors.primary.withValues(alpha: 0.7),
-                            fontSize: 13)),
-                  ],
+              // Image picker row
+              SizedBox(
+                height: 120,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _selectedImages.length < 5 ? _selectedImages.length + 1 : 5,
+                  itemBuilder: (context, index) {
+                    if (index == _selectedImages.length && _selectedImages.length < 5) {
+                      return GestureDetector(
+                        onTap: _showImagePickerModal,
+                        child: Container(
+                          width: 120,
+                          margin: const EdgeInsets.only(right: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.07),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                                style: BorderStyle.solid),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_photo_alternate_outlined,
+                                  size: 32,
+                                  color: AppColors.primary.withValues(alpha: 0.6)),
+                              const SizedBox(height: 8),
+                              Text('Add Photo',
+                                  style: TextStyle(
+                                      color: AppColors.primary.withValues(alpha: 0.7),
+                                      fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    return Container(
+                      width: 120,
+                      margin: const EdgeInsets.only(right: 12),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Image.file(
+                              _selectedImages[index],
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () => _removeImage(index),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.close, color: Colors.white, size: 16),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 20),

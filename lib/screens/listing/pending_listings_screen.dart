@@ -35,6 +35,12 @@ class PendingListingsScreen extends ConsumerWidget {
                 margin: const EdgeInsets.only(bottom: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: ListTile(
+                  leading: product.images.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(product.images.first, width: 50, height: 50, fit: BoxFit.cover),
+                        )
+                      : const Icon(Icons.image_outlined, size: 40, color: AppColors.primary),
                   title: Text(product.title, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(product.category),
                   trailing: const Icon(Icons.chevron_right),

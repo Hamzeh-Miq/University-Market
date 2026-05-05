@@ -44,19 +44,41 @@ class ListingDetailScreen extends ConsumerWidget {
                 backgroundColor: AppColors.primary,
                 iconTheme: const IconThemeData(color: Colors.white),
                 flexibleSpace: FlexibleSpaceBar(
-                  background: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.primary, AppColors.primaryDark],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: const Center(
-                      child: Icon(Icons.image_outlined,
-                          size: 80, color: Colors.white54),
-                    ),
-                  ),
+                  background: product.images.isEmpty
+                      ? Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [AppColors.primary, AppColors.primaryDark],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.image_outlined, size: 80, color: Colors.white54),
+                          ),
+                        )
+                      : PageView.builder(
+                          itemCount: product.images.length,
+                          itemBuilder: (context, index) {
+                            return Image.network(
+                              product.images[index],
+                              fit: BoxFit.cover,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Container(
+                                  color: AppColors.background,
+                                  child: const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                color: AppColors.background,
+                                child: const Center(child: Icon(Icons.error, color: AppColors.error)),
+                              ),
+                            );
+                          },
+                        ),
                 ),
               ),
 
