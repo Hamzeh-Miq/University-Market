@@ -8,7 +8,7 @@ service cloud.firestore {
     }
     function isVerifiedStudent() {
       return isAuthenticated() && request.auth.token.email_verified == true 
-             && request.auth.token.email.matches('.*\\.edu$');
+             && request.auth.token.email.matches('.*\\.edu(\\.[a-zA-Z]{2,})?$');
     }
     
     // USERS
