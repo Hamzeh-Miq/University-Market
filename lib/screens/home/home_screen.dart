@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_routes.dart';
 import '../../models/category_model.dart';
 import '../../data/dummy_categories.dart';
-import '../../providers/auth_provider.dart';
+import '../../widgets/app_drawer.dart';
 
 /// Main home screen showing department category cards.
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final userModel = ref.watch(currentUserModelProvider).value;
-    final isAdmin = userModel?.role == 'admin';
-
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      drawer: const AppDrawer(),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -28,31 +25,6 @@ class HomeScreen extends ConsumerWidget {
             fontSize: 22,
           ),
         ),
-        actions: [
-          if (isAdmin)
-            IconButton(
-              icon: const Icon(Icons.admin_panel_settings, color: AppColors.textPrimary),
-              tooltip: 'Pending Approvals',
-              onPressed: () => Navigator.of(context).pushNamed(AppRoutes.pendingListings),
-            ),
-          // About Us
-          IconButton(
-            icon: const Icon(Icons.info_outline_rounded,
-                color: AppColors.textPrimary),
-            tooltip: 'About Us',
-            onPressed: () =>
-                Navigator.of(context).pushNamed(AppRoutes.aboutUs),
-          ),
-          // Profile
-          IconButton(
-            icon: const Icon(Icons.person_outline_rounded,
-                color: AppColors.textPrimary),
-            tooltip: 'My Profile',
-            onPressed: () =>
-                Navigator.of(context).pushNamed(AppRoutes.profile),
-          ),
-          const SizedBox(width: 4),
-        ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
