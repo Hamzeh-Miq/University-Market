@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -24,7 +25,7 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
   final _priceController = TextEditingController();
   final _courseController = TextEditingController();
 
-  final List<File> _selectedImages = [];
+  final List<XFile> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
 
   String? _selectedCategory;
@@ -63,7 +64,7 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
       if (image != null) {
         setState(() {
           if (_selectedImages.length < 5) {
-            _selectedImages.add(File(image.path));
+            _selectedImages.add(image);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Maximum 5 images allowed.')),
@@ -241,12 +242,19 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(18),
-                            child: Image.file(
-                              _selectedImages[index],
-                              width: 120,
-                              height: 120,
-                              fit: BoxFit.cover,
-                            ),
+                            child: kIsWeb
+                                ? Image.network(
+                                    _selectedImages[index].path,
+                                    width: 120,
+                                    height: 120,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Image.file(
+                                    File(_selectedImages[index].path),
+                                    width: 120,
+                                    height: 120,
+                                    fit: BoxFit.cover,
+                                  ),
                           ),
                           Positioned(
                             top: 4,

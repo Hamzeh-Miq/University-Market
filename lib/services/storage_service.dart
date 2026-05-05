@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -9,18 +8,25 @@ class StorageService {
   final Uuid _uuid = const Uuid();
 
   /// Compresses and uploads an image to Firebase Storage, returning the download URL.
-  Future<String> compressAndUploadImage(File imageFile) async {
+  Future<String> compressAndUploadImage(XFile imageFile) async {
     try {
-      // 1. Compress image to Uint8List
-      final Uint8List? compressedData = await FlutterImageCompress.compressWithFile(
-        imageFile.absolute.path,
-        minWidth: 800,
-        minHeight: 800,
-        quality: 75,
-      );
+      Uint8List data;
 
-      if (compressedData == null) {
-        throw Exception('Failed to compress image.');
+      if (kIsWeb) {
+        data = await imageFile.readAsBytes();
+      } else {
+        // 1. Compress image to Uint8List on mobile
+        final Uint8List? compressedData = await FlutterImageCompress.compressWithFile(
+          imageFile.path,
+          minWidth: 800,
+          minHeight: 800,
+          quality: 75,
+        );
+
+        if (compressedData == null) {
+          throw Exception('Failed to compress image.');
+        }
+        data = compressedData;
       }
 
       // 2. Generate unique file name
@@ -29,7 +35,7 @@ class StorageService {
 
       // 3. Upload data
       final UploadTask uploadTask = ref.putData(
-        compressedData,
+        data,
         SettableMetadata(contentType: 'image/jpeg'),
       );
 
