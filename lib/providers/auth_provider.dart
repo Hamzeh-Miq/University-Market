@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../services/user_service.dart';
 
 /// Exposes a real-time stream of the current Firebase [User].
 /// Widgets can watch this to react to login/logout instantly.
@@ -19,5 +21,18 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
   return userAsync.maybeWhen(
     data: (user) => user != null && user.emailVerified,
     orElse: () => false,
+  );
+});
+
+/// Exposes the current user's profile model, which includes their role
+final currentUserModelProvider = StreamProvider.autoDispose<UserModel?>((ref) {
+  final userAsync = ref.watch(authStateProvider);
+  return userAsync.when(
+    data: (user) {
+      if (user == null) return Stream.value(null);
+      return UserService().watchUserProfile(user.uid);
+    },
+    loading: () => Stream.value(null),
+    error: (_, __) => Stream.value(null),
   );
 });

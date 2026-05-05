@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/about/about_us_screen.dart';
 import 'screens/listing/listing_detail_screen.dart';
 import 'screens/listing/add_listing_screen.dart';
+import 'screens/listing/department_listings_screen.dart';
+import 'screens/listing/pending_listings_screen.dart';
 import 'screens/chat/chat_list_screen.dart';
 import 'screens/chat/chat_detail_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/profile/edit_profile_screen.dart';
 import 'constants/app_routes.dart';
 
-/// Central router — add all named routes here.
+/// Central router — all named routes are registered here.
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -19,6 +22,9 @@ class AppRouter {
       case AppRoutes.home:
         return MaterialPageRoute(builder: (_) => const HomeScreen());
 
+      case AppRoutes.aboutUs:
+        return MaterialPageRoute(builder: (_) => const AboutUsScreen());
+
       case AppRoutes.listingDetail:
         final productId = settings.arguments as String? ?? '';
         return MaterialPageRoute(
@@ -27,6 +33,15 @@ class AppRouter {
 
       case AppRoutes.addListing:
         return MaterialPageRoute(builder: (_) => const AddListingScreen());
+
+      case AppRoutes.departmentListings:
+        final category = settings.arguments as String? ?? '';
+        return MaterialPageRoute(
+          builder: (_) => DepartmentListingsScreen(category: category),
+        );
+
+      case AppRoutes.pendingListings:
+        return MaterialPageRoute(builder: (_) => const PendingListingsScreen());
 
       case AppRoutes.chatList:
         return MaterialPageRoute(builder: (_) => const ChatListScreen());
