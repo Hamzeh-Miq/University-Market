@@ -1,0 +1,5 @@
+{
+  "name": "firebase-team-skills",
+  "description": "Shared Firebase setup, auth, Firestore, and security-rules skills for the University Market team.",
+  "version": "1.0.0"
+}

@@ -1,0 +1,27 @@
+{
+  "name": "firebase-team-skills",
+  "version": "1.0.0",
+  "description": "Shared Firebase setup, auth, Firestore, and security-rules skills for the University Market team.",
+  "author": {
+    "name": "University Market Team"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Firebase Team Skills",
+    "shortDescription": "Shared Firebase skills for UniTrade and related team projects",
+    "longDescription": "Bundles curated Firebase setup, Authentication, Firestore, and security rules skills into one plugin that the team can share across Codex, Claude Code, and Antigravity.",
+    "developerName": "University Market Team",
+    "category": "Engineering",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Review our Firebase Auth flow",
+      "Help set up Firestore indexes",
+      "Audit Firestore security rules"
+    ],
+    "brandColor": "#FFCA28",
+    "screenshots": []
+  }
+}

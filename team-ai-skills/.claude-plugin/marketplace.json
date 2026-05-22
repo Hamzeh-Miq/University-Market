@@ -1,0 +1,17 @@
+{
+  "name": "team-ai-skills",
+  "owner": {
+    "name": "University Market Team"
+  },
+  "plugins": [
+    {
+      "name": "firebase-team-skills",
+      "source": "./plugins/firebase-team-skills",
+      "description": "Shared Firebase setup, auth, Firestore, and security-rules skills for the University Market team.",
+      "version": "1.0.0",
+      "author": {
+        "name": "University Market Team"
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "team-ai-skills",
+  "interface": {
+    "displayName": "University Market Team"
+  },
+  "plugins": [
+    {
+      "name": "firebase-team-skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/firebase-team-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Engineering"
+    }
+  ]
+}
