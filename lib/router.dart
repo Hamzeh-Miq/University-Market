@@ -1,23 +1,44 @@
 import 'package:flutter/material.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/welcome_screen.dart';
+import 'screens/auth/email_verification_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/about/about_us_screen.dart';
 import 'screens/listing/listing_detail_screen.dart';
 import 'screens/listing/add_listing_screen.dart';
+import 'screens/listing/all_listings_screen.dart';
 import 'screens/listing/department_listings_screen.dart';
 import 'screens/listing/pending_listings_screen.dart';
 import 'screens/chat/chat_list_screen.dart';
 import 'screens/chat/chat_detail_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/profile/edit_profile_screen.dart';
+import 'screens/profile/seller_profile_screen.dart';
+import 'screens/settings/settings_screen.dart';
+import 'screens/subscription/payment_screen.dart';
+import 'screens/subscription/subscribed_users_screen.dart';
 import 'constants/app_routes.dart';
 
 /// Central router — all named routes are registered here.
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
+      case AppRoutes.welcome:
+        return MaterialPageRoute(builder: (_) => const WelcomeScreen());
+
+      case AppRoutes.emailVerification:
+        return MaterialPageRoute(
+          builder: (_) => const EmailVerificationScreen(),
+        );
+
       case AppRoutes.login:
-        return MaterialPageRoute(builder: (_) => const LoginScreen());
+        // Optional argument 'register' opens the form in register mode
+        final arg = settings.arguments as String?;
+        return MaterialPageRoute(
+          builder: (_) => LoginScreen(initialMode: arg == 'register'
+              ? LoginMode.register
+              : LoginMode.login),
+        );
 
       case AppRoutes.home:
         return MaterialPageRoute(builder: (_) => const HomeScreen());
@@ -40,6 +61,12 @@ class AppRouter {
           builder: (_) => DepartmentListingsScreen(category: category),
         );
 
+      case AppRoutes.allListings:
+        final initialCategory = settings.arguments as String?;
+        return MaterialPageRoute(
+          builder: (_) => AllListingsScreen(initialCategory: initialCategory),
+        );
+
       case AppRoutes.pendingListings:
         return MaterialPageRoute(builder: (_) => const PendingListingsScreen());
 
@@ -57,6 +84,22 @@ class AppRouter {
 
       case AppRoutes.editProfile:
         return MaterialPageRoute(builder: (_) => const EditProfileScreen());
+
+      case AppRoutes.sellerProfile:
+        final uid = settings.arguments as String? ?? '';
+        return MaterialPageRoute(
+          builder: (_) => SellerProfileScreen(uid: uid),
+        );
+
+      case AppRoutes.settings:
+        return MaterialPageRoute(builder: (_) => const SettingsScreen());
+
+      case AppRoutes.payment:
+        return MaterialPageRoute(builder: (_) => const PaymentScreen());
+
+      case AppRoutes.subscribedUsers:
+        return MaterialPageRoute(
+            builder: (_) => const SubscribedUsersScreen());
 
       default:
         return MaterialPageRoute(

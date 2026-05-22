@@ -27,7 +27,10 @@ class ProductModel {
 
   factory ProductModel.fromJson(Map<String, dynamic> json, String documentId) {
     return ProductModel(
-      productId: documentId,
+      // Prefer the stored productId field; fall back to the Firestore doc ID.
+      productId: (json['productId'] as String?)?.isNotEmpty == true
+          ? json['productId'] as String
+          : documentId,
       sellerId: json['sellerId'] ?? '',
       title: json['title'] ?? '',
       description: json['description'] ?? '',

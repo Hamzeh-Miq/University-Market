@@ -9,6 +9,7 @@ import '../../models/product_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/product_service.dart';
 import '../../services/storage_service.dart';
+import '../../widgets/subscription_gate.dart';
 
 /// Screen for posting a new product listing to the marketplace.
 class AddListingScreen extends ConsumerStatefulWidget {
@@ -151,7 +152,7 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
             ? null
             : _courseController.text.trim().toUpperCase(),
         images: uploadedUrls,
-        status: 'Pending',
+        status: 'Pending', // Requires admin approval before going live
         createdAt: DateTime.now(),
       );
 
@@ -160,7 +161,7 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Listing posted successfully!'),
+            content: Text('Listing submitted! It will appear after admin approval.'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -179,6 +180,10 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isSubscribed = ref.watch(hasActiveSubscriptionProvider);
+    final isAdmin = ref.watch(isAdminProvider);
+    final hasAccess = isSubscribed || isAdmin;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -191,7 +196,8 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
         ),
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
-      body: SingleChildScrollView(
+      body: hasAccess
+          ? SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
           key: _formKey,
@@ -371,7 +377,12 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
             ],
           ),
         ),
-      ),
+      )
+      : const SubscriptionGate(
+          featureLabel: 'posting listings',
+          fullPage: true,
+          child: SizedBox.shrink(),
+        ),
     );
   }
 }

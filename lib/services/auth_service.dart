@@ -7,23 +7,39 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final UserService _userService = UserService();
 
-  /// Validates if the email belongs to a university (.edu domain).
+  /// Validates if the email belongs to Applied Science University (@asu.edu.jo).
   bool isValidEduEmail(String email) {
-    final RegExp eduRegex =
-        RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.edu(\.[a-zA-Z]{2,})?$');
-    return eduRegex.hasMatch(email.trim().toLowerCase());
+    return email.trim().toLowerCase().endsWith('@asu.edu.jo');
+  }
+
+  /// Resends the Firebase email-verification link to the current signed-in user.
+  /// Throws if no user is signed in.
+  Future<void> resendVerificationEmail() async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('No user is currently signed in.');
+    await user.sendEmailVerification();
+  }
+
+  /// Reloads the current Firebase user to get the latest [emailVerified] status.
+  Future<bool> reloadAndCheckVerified() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    await user.reload();
+    return _auth.currentUser?.emailVerified ?? false;
   }
 
   /// Registers a student user and creates their Firestore profile.
   Future<UserCredential?> registerStudent(
     String email,
     String password, {
-    required String fullName,
+    required String firstName,
+    String middleName = '',
+    required String lastName,
     required String phoneNumber,
   }) async {
     if (!isValidEduEmail(email)) {
       throw Exception(
-          'Access restricted. Please use a valid university .edu email.');
+          'Access restricted. Only @asu.edu.jo email addresses are allowed.');
     }
 
     try {
@@ -35,16 +51,20 @@ class AuthService {
       // Send verification email
       await userCredential.user?.sendEmailVerification();
 
-      final String role = email.trim().toLowerCase() == '202120554@students.asu.edu.jo' ? 'admin' : 'user';
+      final String role =
+          email.trim().toLowerCase() == '202120554@students.asu.edu.jo'
+              ? 'admin'
+              : 'user';
 
       // Build and store the user profile in Firestore
       final userModel = UserModel(
         uid: userCredential.user!.uid,
         email: email,
-        displayName: fullName.trim().split(' ').first,
-        fullName: fullName.trim(),
+        firstName: firstName.trim(),
+        middleName: middleName.trim(),
+        lastName: lastName.trim(),
         phoneNumber: phoneNumber.trim(),
-        university: 'University of Jordan',
+        university: 'Applied Science Private University',
         isVerified: false,
         createdAt: DateTime.now(),
         role: role,

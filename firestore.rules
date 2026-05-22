@@ -14,33 +14,61 @@ service cloud.firestore {
     // USERS
     match /users/{userId} {
       allow read: if isAuthenticated();
+      // Owner can write anything to their own document
       allow write: if request.auth.uid == userId;
+      // Any authenticated user can update only the rating/reviewCount fields
+      // (needed by the review submission transaction)
+      allow update: if isAuthenticated()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['rating', 'reviewCount']);
     }
     
     // PRODUCTS
     match /products/{productId} {
       allow read: if isAuthenticated();
-      // Only verified students can sell, and they can only set themselves as the seller
-      allow create: if isVerifiedStudent() && request.resource.data.sellerId == request.auth.uid;
-      // Only the seller can update/delete their listings
+      // Only verified students can create listings; initial status must be Pending
+      allow create: if isVerifiedStudent()
+                    && request.resource.data.sellerId == request.auth.uid
+                    && request.resource.data.status == 'Pending';
+      // The seller can update/delete their own listing
       allow update, delete: if isVerifiedStudent() && resource.data.sellerId == request.auth.uid;
+      // Admins can update (approve/reject) or delete any listing
+      allow update, delete: if isAuthenticated()
+                            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
     // CHAT (Conversations & Messages)
     match /conversations/{conversationId} {
       allow read, update: if isAuthenticated() && request.auth.uid in resource.data.participants;
       allow create: if isAuthenticated() && request.auth.uid in request.resource.data.participants;
+      // Allow participants to delete their conversation
+      allow delete: if isAuthenticated() && request.auth.uid in resource.data.participants;
       
       match /messages/{messageId} {
         allow read: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
         allow create: if isAuthenticated() && request.auth.uid == request.resource.data.senderId;
+        // Allow sender to delete their own message,
+        // OR allow any participant to delete during conversation deletion
+        allow delete: if isAuthenticated() && (
+          request.auth.uid == resource.data.senderId ||
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants
+        );
       }
     }
     
-    // REVIEWS
+    // REVIEWS — any authenticated user can submit (reviewer must match their uid)
     match /reviews/{reviewId} {
       allow read: if isAuthenticated();
-      allow create: if isVerifiedStudent() && request.auth.uid == request.resource.data.reviewerId;
+      allow create: if isAuthenticated()
+                    && request.auth.uid == request.resource.data.reviewerId;
+    }
+
+    // REPORTS — verified students can submit; only admins can read/update
+    match /reports/{reportId} {
+      allow create: if isVerifiedStudent()
+                    && request.resource.data.reporterId == request.auth.uid;
+      allow read, update: if isAuthenticated()
+                          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
   }
 }

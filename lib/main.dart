@@ -48,7 +48,7 @@ class UniTradeApp extends StatelessWidget {
         ),
         fontFamily: 'Inter',
       ),
-      initialRoute: AppRoutes.login,
+      initialRoute: AppRoutes.welcome,
       onGenerateRoute: AppRouter.generateRoute,
     );
   }

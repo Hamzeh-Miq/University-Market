@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_routes.dart';
+import '../../constants/subscription_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
+import '../../providers/report_provider.dart';
 import '../../services/user_service.dart';
+import '../../services/product_service.dart';
+import '../../services/report_service.dart';
 import '../../models/user_model.dart';
 import '../../models/product_model.dart';
+import '../../models/report_model.dart';
+import '../../widgets/app_bottom_nav.dart';
 
 /// Shows the current user's profile, stats, and their posted listings.
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -41,11 +47,42 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _signOut() async {
-    final nav = Navigator.of(context);
+    // Capture before any async gap
     final messenger = ScaffoldMessenger.of(context);
+    final nav = Navigator.of(context);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Sign Out'),
+        content: const Text('Are you sure you want to sign out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     try {
       await ref.read(authServiceProvider).signOut();
-      nav.pushReplacementNamed(AppRoutes.login);
+      if (mounted) {
+        // Clear the entire navigation stack — no back route remains
+        nav.pushNamedAndRemoveUntil(
+          AppRoutes.welcome,
+          (route) => false,
+        );
+      }
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Sign out failed: $e')));
     }
@@ -54,6 +91,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final firebaseUser = ref.watch(authStateProvider).value;
+    final isAdmin = ref.watch(isAdminProvider);
 
     if (_loadingProfile) {
       return const Scaffold(
@@ -73,6 +111,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: const AppBottomNav(currentRoute: AppRoutes.profile),
       body: CustomScrollView(
         slivers: [
           // ── Header ────────────────────────────────────────────────
@@ -118,15 +157,56 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Text(
-                      _userModel?.fullName.isNotEmpty == true
-                          ? _userModel!.fullName
-                          : firebaseUser?.email ?? 'User',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    // Name + admin badge
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _userModel?.fullName.isNotEmpty == true
+                                ? _userModel!.fullName
+                                : firebaseUser?.email ?? 'User',
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        if (isAdmin) ...
+                          [
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF59E0B),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.shield_rounded,
+                                      size: 11, color: Colors.white),
+                                  SizedBox(width: 3),
+                                  Text(
+                                    'ADMIN',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -217,6 +297,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                   if (firebaseUser != null)
                     _MyListingsSection(uid: firebaseUser.uid),
+
+                  // ── Subscription status card ──────────────────────
+                  const SizedBox(height: 24),
+                  _SubscriptionStatusCard(
+                    userModel: _userModel,
+                    isAdmin: isAdmin,
+                  ),
+
+                  // ── Admin: Post Requests ─────────────────────────
+                  if (isAdmin) ...[
+                    const SizedBox(height: 28),
+                    _AdminApprovalsSection(),
+                    const SizedBox(height: 28),
+                    _AdminSubscriptionSection(),
+                    const SizedBox(height: 28),
+                    _AdminReportsSection(),
+                  ],
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -431,4 +529,1285 @@ class _InfoRow {
   final String value;
   const _InfoRow(
       {required this.icon, required this.label, required this.value});
+}
+
+// ── Admin Approvals Section ──────────────────────────────────────────────────
+
+/// Embedded admin queue — renders inside the profile for admin users only.
+class _AdminApprovalsSection extends ConsumerWidget {
+  const _AdminApprovalsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pendingAsync = ref.watch(pendingListingsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Section header ─────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFF8E1), Color(0xFFFFF3CD)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
+            ),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.admin_panel_settings_rounded,
+                  color: Color(0xFFF59E0B), size: 22),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Post Requests',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF92400E),
+                  ),
+                ),
+              ),
+              pendingAsync.maybeWhen(
+                data: (list) => list.isEmpty
+                    ? const SizedBox.shrink()
+                    : Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${list.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                orElse: () => const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // ── Pending list ────────────────────────────────────────────
+        pendingAsync.when(
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+          error: (e, _) => Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                  color: AppColors.error.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline,
+                    color: AppColors.error, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text('Failed to load: $e',
+                      style: const TextStyle(
+                          color: AppColors.error, fontSize: 13)),
+                ),
+              ],
+            ),
+          ),
+          data: (listings) {
+            if (listings.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: const Center(
+                  child: Column(
+                    children: [
+                      Icon(Icons.check_circle_outline,
+                          size: 40, color: AppColors.success),
+                      SizedBox(height: 10),
+                      Text(
+                        'All caught up!\nNo posts pending review.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: AppColors.textSecondary, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Column(
+              children: listings
+                  .map((product) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _AdminPendingCard(
+                          product: product,
+                          onRefresh: () =>
+                              ref.refresh(pendingListingsProvider),
+                        ),
+                      ))
+                  .toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+// ── Admin pending card ────────────────────────────────────────────────────────
+
+/// A single pending listing card with Approve / Reject actions.
+class _AdminPendingCard extends ConsumerStatefulWidget {
+  final ProductModel product;
+  final VoidCallback onRefresh;
+
+  const _AdminPendingCard(
+      {required this.product, required this.onRefresh});
+
+  @override
+  ConsumerState<_AdminPendingCard> createState() =>
+      _AdminPendingCardState();
+}
+
+class _AdminPendingCardState extends ConsumerState<_AdminPendingCard> {
+  bool _isActing = false;
+
+  Future<void> _updateStatus(String newStatus) async {
+    setState(() => _isActing = true);
+    try {
+      await ProductService()
+          .updateProductStatus(widget.product.productId, newStatus);
+      widget.onRefresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                newStatus == 'Available' ? 'Listing approved ✓' : 'Listing rejected ✗'),
+            backgroundColor: newStatus == 'Available'
+                ? AppColors.success
+                : AppColors.error,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isActing = false);
+    }
+  }
+
+  Future<void> _confirmAction(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required String confirmLabel,
+    required Color confirmColor,
+    required VoidCallback onConfirm,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: confirmColor),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(confirmLabel),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) onConfirm();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final product = widget.product;
+    final sellerAsync = ref.watch(sellerProfileProvider(product.sellerId));
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Seller info row ───────────────────────────────────────
+          InkWell(
+            onTap: () => Navigator.of(context).pushNamed(
+                AppRoutes.sellerProfile,
+                arguments: product.sellerId),
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+              child: sellerAsync.when(
+                loading: () => const Row(
+                  children: [
+                    SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2)),
+                    SizedBox(width: 10),
+                    Text('Loading seller…',
+                        style: TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12)),
+                  ],
+                ),
+                error: (_, __) => const Row(
+                  children: [
+                    Icon(Icons.person_outline,
+                        size: 18, color: AppColors.error),
+                    SizedBox(width: 8),
+                    Text('Unknown seller',
+                        style:
+                            TextStyle(color: AppColors.error, fontSize: 12)),
+                  ],
+                ),
+                data: (seller) {
+                  final name = seller?.fullName.isNotEmpty == true
+                      ? seller!.fullName
+                      : 'Unknown User';
+                  final initials = name
+                      .trim()
+                      .split(' ')
+                      .where((p) => p.isNotEmpty)
+                      .map((p) => p[0].toUpperCase())
+                      .take(2)
+                      .join();
+
+                  return Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 15,
+                        backgroundColor:
+                            AppColors.primary.withValues(alpha: 0.12),
+                        child: Text(
+                          initials.isEmpty ? '?' : initials,
+                          style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: AppColors.textPrimary)),
+                            Text(seller?.email ?? '',
+                                style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded,
+                          size: 16, color: AppColors.primary),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+
+          const Divider(height: 1, color: AppColors.divider),
+
+          // ── Listing info ──────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Thumbnail
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: product.images.isNotEmpty
+                      ? Image.network(product.images.first,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(
+                              Icons.broken_image_outlined,
+                              color: AppColors.error))
+                      : const Icon(Icons.image_outlined,
+                          color: AppColors.primary, size: 28),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          _AdminBadge(
+                              label: product.category,
+                              color: AppColors.primary),
+                          _AdminBadge(
+                            label:
+                                'JD ${product.price.toStringAsFixed(2)}',
+                            color: AppColors.accent,
+                          ),
+                          if (product.courseCode != null &&
+                              product.courseCode!.isNotEmpty)
+                            _AdminBadge(
+                                label: product.courseCode!,
+                                color: AppColors.textSecondary),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                // Preview button
+                IconButton(
+                  tooltip: 'Preview',
+                  icon: const Icon(Icons.open_in_new_rounded,
+                      color: AppColors.textSecondary, size: 18),
+                  onPressed: () => Navigator.of(context).pushNamed(
+                      AppRoutes.listingDetail,
+                      arguments: product.productId),
+                ),
+              ],
+            ),
+          ),
+
+          if (product.description.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
+              child: Text(
+                product.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: AppColors.textSecondary, fontSize: 12),
+              ),
+            ),
+
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: AppColors.divider),
+
+          // ── Action buttons ────────────────────────────────────────
+          _isActing
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : Row(
+                  children: [
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: () => _confirmAction(
+                          context,
+                          title: 'Reject Listing',
+                          message:
+                              'This listing will be hidden from the marketplace.',
+                          confirmLabel: 'Reject',
+                          confirmColor: AppColors.error,
+                          onConfirm: () => _updateStatus('Rejected'),
+                        ),
+                        icon: const Icon(Icons.close_rounded,
+                            color: AppColors.error, size: 17),
+                        label: const Text('Reject',
+                            style: TextStyle(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13)),
+                        style: TextButton.styleFrom(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 10)),
+                      ),
+                    ),
+                    const VerticalDivider(
+                        width: 1, color: AppColors.divider),
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: () => _confirmAction(
+                          context,
+                          title: 'Approve Listing',
+                          message:
+                              'This listing will become visible to all students.',
+                          confirmLabel: 'Approve',
+                          confirmColor: AppColors.success,
+                          onConfirm: () => _updateStatus('Available'),
+                        ),
+                        icon: const Icon(Icons.check_rounded,
+                            color: AppColors.success, size: 17),
+                        label: const Text('Approve',
+                            style: TextStyle(
+                                color: AppColors.success,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13)),
+                        style: TextButton.styleFrom(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 10)),
+                      ),
+                    ),
+                  ],
+                ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Badge helper ──────────────────────────────────────────────────────────────
+
+class _AdminBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _AdminBadge({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              color: color, fontWeight: FontWeight.w600, fontSize: 11)),
+    );
+  }
+}
+
+
+// ── Subscription Status Card ───────────────────────────────────────────────────
+
+/// Shows the current user's subscription status on their profile page.
+class _SubscriptionStatusCard extends ConsumerWidget {
+  final UserModel? userModel;
+  final bool isAdmin;
+
+  const _SubscriptionStatusCard({
+    required this.userModel,
+    required this.isAdmin,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (isAdmin) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFF8E1), Color(0xFFFFF3CD)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.admin_panel_settings_rounded, color: Color(0xFFF59E0B), size: 22),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Admin — Full Access Granted',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF92400E), fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final isSubscribed = userModel?.isSubscribed ?? false;
+    final expiry = userModel?.subscriptionExpiresAt;
+    final isActive = isSubscribed && expiry != null && expiry.isAfter(DateTime.now());
+
+    if (isActive) {
+      final daysLeft = expiry.difference(DateTime.now()).inDays;
+      final formatted = '${expiry.day}/${expiry.month}/${expiry.year}';
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.success.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.verified_rounded, color: AppColors.success, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Active Semester Subscription',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.success, fontSize: 14)),
+                  const SizedBox(height: 2),
+                  Text('Expires $formatted · $daysLeft day${daysLeft == 1 ? '' : 's'} remaining',
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.lock_rounded, color: AppColors.warning, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Free Preview',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.warning, fontSize: 14)),
+                    SizedBox(height: 2),
+                    Text('Subscribe to unlock the full marketplace',
+                        style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => Navigator.of(context).pushNamed(AppRoutes.payment),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              icon: const Icon(Icons.credit_card_rounded, size: 16),
+              label: const Text('Subscribe Now',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Admin Subscription Management Section ────────────────────────────────────
+
+/// Allows admins to search a user by email and activate or revoke a subscription.
+class _AdminSubscriptionSection extends StatefulWidget {
+  const _AdminSubscriptionSection();
+
+  @override
+  State<_AdminSubscriptionSection> createState() => _AdminSubscriptionSectionState();
+}
+
+class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
+  final _emailController = TextEditingController();
+  UserModel? _foundUser;
+  bool _searching = false;
+  bool _acting = false;
+  String? _searchError;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _search() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) return;
+    setState(() { _searching = true; _foundUser = null; _searchError = null; });
+    try {
+      final user = await UserService().searchUserByEmail(email);
+      setState(() {
+        _foundUser = user;
+        _searching = false;
+        if (user == null) _searchError = 'No user found with that email.';
+      });
+    } catch (e) {
+      setState(() { _searching = false; _searchError = 'Search failed: $e'; });
+    }
+  }
+
+  Future<void> _activate() async {
+    if (_foundUser == null) return;
+    setState(() => _acting = true);
+    try {
+      await UserService().activateSubscription(_foundUser!.uid);
+      final updated = await UserService().getUserProfile(_foundUser!.uid);
+      if (mounted) {
+        setState(() { _foundUser = updated; _acting = false; });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Subscription activated for ${_foundUser?.fullName ?? _foundUser?.email}'),
+          backgroundColor: AppColors.success,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _acting = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  Future<void> _revoke() async {
+    if (_foundUser == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Revoke Subscription'),
+        content: Text('Revoke the subscription for ${_foundUser!.fullName}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Revoke'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _acting = true);
+    try {
+      await UserService().revokeSubscription(_foundUser!.uid);
+      final updated = await UserService().getUserProfile(_foundUser!.uid);
+      if (mounted) {
+        setState(() { _foundUser = updated; _acting = false; });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Subscription revoked.'), backgroundColor: AppColors.error),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _acting = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final found = _foundUser;
+    final hasActiveSub = (found?.isSubscribed ?? false) &&
+        (found?.subscriptionExpiresAt?.isAfter(DateTime.now()) ?? false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.card_membership_rounded,
+                  color: AppColors.success, size: 22),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text('Manage Subscriptions',
+                    style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1B5E20))),
+              ),
+              TextButton.icon(
+                onPressed: () => Navigator.of(context)
+                    .pushNamed(AppRoutes.subscribedUsers),
+                icon: const Icon(Icons.people_alt_outlined,
+                    color: AppColors.success, size: 16),
+                label: const Text(
+                  'View All',
+                  style: TextStyle(
+                      color: AppColors.success,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  hintText: 'Search user by email...',
+                  prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.border)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.border)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+                ),
+                onSubmitted: (_) => _search(),
+              ),
+            ),
+            const SizedBox(width: 10),
+            FilledButton(
+              onPressed: _searching ? null : _search,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: _searching
+                  ? const SizedBox(width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Find'),
+            ),
+          ],
+        ),
+
+        if (_searchError != null) ...[
+          const SizedBox(height: 10),
+          Text(_searchError!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+        ],
+
+        if (found != null) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                      child: Text(
+                        found.fullName.isNotEmpty ? found.fullName[0].toUpperCase() : '?',
+                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(found.fullName.isNotEmpty ? found.fullName : found.email,
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 14)),
+                          Text(found.email, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: hasActiveSub ? AppColors.success.withValues(alpha: 0.08) : AppColors.warning.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(hasActiveSub ? Icons.verified_rounded : Icons.lock_rounded,
+                          color: hasActiveSub ? AppColors.success : AppColors.warning, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          hasActiveSub
+                              ? 'Subscribed · expires ${found.subscriptionExpiresAt!.day}/${found.subscriptionExpiresAt!.month}/${found.subscriptionExpiresAt!.year} · ${SubscriptionConstants.subscriptionDays}d plan'
+                              : 'No active subscription',
+                          style: TextStyle(
+                            color: hasActiveSub ? AppColors.success : AppColors.warning,
+                            fontSize: 12, fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                if (_acting)
+                  const Center(child: CircularProgressIndicator())
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: _activate,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.success,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: const Icon(Icons.add_card_rounded, size: 18),
+                          label: Text(hasActiveSub ? 'Renew (+${SubscriptionConstants.subscriptionDays}d)' : 'Activate',
+                              style: const TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      if (hasActiveSub) ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _revoke,
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppColors.error),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            icon: const Icon(Icons.remove_circle_outline, color: AppColors.error, size: 18),
+                            label: const Text('Revoke',
+                                style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ── Admin Reports Section ─────────────────────────────────────────────────────
+
+/// Embedded admin panel showing pending user/product reports.
+class _AdminReportsSection extends ConsumerWidget {
+  const _AdminReportsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reportsAsync = ref.watch(pendingReportsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Section header ──────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFEBEE), Color(0xFFFFCDD2)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: AppColors.error.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.flag_rounded,
+                  color: AppColors.error, size: 22),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'User Reports',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF7F1D1D),
+                  ),
+                ),
+              ),
+              reportsAsync.maybeWhen(
+                data: (list) => list.isEmpty
+                    ? const SizedBox.shrink()
+                    : Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.error,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${list.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                orElse: () => const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        reportsAsync.when(
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+          error: (e, _) => Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(14),
+              border:
+                  Border.all(color: AppColors.error.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline,
+                    color: AppColors.error, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text('Failed to load reports: $e',
+                      style: const TextStyle(
+                          color: AppColors.error, fontSize: 13)),
+                ),
+              ],
+            ),
+          ),
+          data: (reports) {
+            if (reports.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: const Center(
+                  child: Column(
+                    children: [
+                      Icon(Icons.check_circle_outline,
+                          size: 40, color: AppColors.success),
+                      SizedBox(height: 10),
+                      Text(
+                        'No pending reports.\nAll clear!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: AppColors.textSecondary, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Column(
+              children: reports
+                  .map((report) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _AdminReportCard(
+                          report: report,
+                          onRefresh: () =>
+                              ref.refresh(pendingReportsProvider),
+                        ),
+                      ))
+                  .toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+// ── Admin report card ─────────────────────────────────────────────────────────
+
+class _AdminReportCard extends ConsumerStatefulWidget {
+  final ReportModel report;
+  final VoidCallback onRefresh;
+
+  const _AdminReportCard(
+      {required this.report, required this.onRefresh});
+
+  @override
+  ConsumerState<_AdminReportCard> createState() =>
+      _AdminReportCardState();
+}
+
+class _AdminReportCardState extends ConsumerState<_AdminReportCard> {
+  bool _isActing = false;
+
+  Future<void> _updateStatus(String newStatus) async {
+    setState(() => _isActing = true);
+    try {
+      await ReportService()
+          .updateReportStatus(widget.report.reportId, newStatus);
+      widget.onRefresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(newStatus == 'reviewed'
+                ? 'Report marked as reviewed ✓'
+                : 'Report dismissed'),
+            backgroundColor: newStatus == 'reviewed'
+                ? AppColors.success
+                : AppColors.textSecondary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isActing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final report = widget.report;
+    final isUser = report.targetType == 'user';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+            color: AppColors.error.withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Type chip + target name ──────────────────────────────
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: (isUser ? AppColors.error : AppColors.warning)
+                        .withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color:
+                          (isUser ? AppColors.error : AppColors.warning)
+                              .withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Text(
+                    isUser ? 'USER' : 'PRODUCT',
+                    style: TextStyle(
+                      color: isUser ? AppColors.error : AppColors.warning,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    report.targetName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // ── Reason ──────────────────────────────────────────────
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.report_outlined,
+                    size: 16, color: AppColors.error),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    report.reason,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // ── Description ─────────────────────────────────────────
+            if (report.description.isNotEmpty) ...[ 
+              const SizedBox(height: 6),
+              Text(
+                report.description,
+                style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    height: 1.4),
+              ),
+            ],
+
+            const SizedBox(height: 6),
+
+            // ── Reporter ref + date ──────────────────────────────────
+            Text(
+              'Reporter: ${report.reporterId.length > 12 ? '${report.reporterId.substring(0, 12)}…' : report.reporterId}'
+              ' · ${report.createdAt.day}/${report.createdAt.month}/${report.createdAt.year}',
+              style: const TextStyle(
+                  color: AppColors.textHint, fontSize: 11),
+            ),
+
+            const SizedBox(height: 12),
+
+            // ── Action buttons ───────────────────────────────────────
+            if (_isActing)
+              const Center(
+                  child: CircularProgressIndicator(strokeWidth: 2))
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => _updateStatus('dismissed'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textSecondary,
+                        side: const BorderSide(
+                            color: AppColors.border),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Dismiss'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () => _updateStatus('reviewed'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Mark Reviewed'),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }

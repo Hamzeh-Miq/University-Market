@@ -3,9 +3,17 @@ import '../../services/auth_service.dart';
 import '../../constants/app_routes.dart';
 import '../../constants/app_colors.dart';
 
+/// Controls which tab the LoginScreen opens in.
+enum LoginMode { login, register }
+
 /// Authentication screen handling both Login and Register flows.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final LoginMode initialMode;
+
+  const LoginScreen({
+    super.key,
+    this.initialMode = LoginMode.login,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -25,7 +33,9 @@ class _LoginScreenState extends State<LoginScreen>
 
   String _email = '';
   String _password = '';
-  String _fullName = '';
+  String _firstName = '';
+  String _middleName = '';
+  String _lastName = '';
   String _phoneNumber = '';
   String? _message;
   bool _messageIsSuccess = false;
@@ -33,6 +43,7 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void initState() {
     super.initState();
+    _isLogin = widget.initialMode == LoginMode.login;
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -58,15 +69,23 @@ class _LoginScreenState extends State<LoginScreen>
 
     try {
       if (_isLogin) {
-        await _authService.signIn(_email, _password);
+        final credential = await _authService.signIn(_email, _password);
         if (mounted) {
-          Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+          // Block access until email is verified
+          if (credential.user?.emailVerified == true) {
+            Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+          } else {
+            Navigator.of(context)
+                .pushReplacementNamed(AppRoutes.emailVerification);
+          }
         }
       } else {
         await _authService.registerStudent(
           _email,
           _password,
-          fullName: _fullName,
+          firstName: _firstName,
+          middleName: _middleName,
+          lastName: _lastName,
           phoneNumber: _phoneNumber,
         );
         if (mounted) {
@@ -82,12 +101,35 @@ class _LoginScreenState extends State<LoginScreen>
       if (mounted) {
         setState(() {
           _messageIsSuccess = false;
-          _message = e.toString().replaceAll('Exception: ', '');
+          _message = _mapFirebaseError(e);
         });
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  String _mapFirebaseError(dynamic e) {
+    final message = e.toString().toLowerCase();
+    if (message.contains('invalid-credential') || message.contains('invalid-email') || message.contains('wrong-password') || message.contains('user-not-found')) {
+      return 'Incorrect email or password. Please try again.';
+    }
+    if (message.contains('email-already-in-use')) {
+      return 'This email is already registered. Try logging in.';
+    }
+    if (message.contains('network-request-failed')) {
+      return 'Network error. Please check your internet connection.';
+    }
+    if (message.contains('too-many-requests')) {
+      return 'Too many attempts. Please try again later.';
+    }
+    if (message.contains('user-disabled')) {
+      return 'This account has been disabled.';
+    }
+    if (message.contains('requires an index')) {
+      return 'Database setup in progress. Please click the link in your console to create the index.';
+    }
+    return e.toString().replaceAll('Exception: ', '').split(']').last.trim();
   }
 
   void _toggleMode() {
@@ -196,23 +238,46 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                             const SizedBox(height: 20),
 
-                            // Full Name — only in register mode
+                            // Name fields — only in register mode
                             if (!_isLogin) ...[
+                              // First Name
                               TextFormField(
                                 decoration: _fieldDecoration(
-                                    'Full Name', Icons.badge_outlined),
+                                    'First Name', Icons.badge_outlined),
                                 textCapitalization: TextCapitalization.words,
                                 validator: (v) {
                                   if (v == null || v.trim().isEmpty) {
-                                    return 'Please enter your full name.';
-                                  }
-                                  final parts = v.trim().split(' ');
-                                  if (parts.length < 2) {
-                                    return 'Please enter at least first and last name.';
+                                    return 'Please enter your first name.';
                                   }
                                   return null;
                                 },
-                                onSaved: (v) => _fullName = v!.trim(),
+                                onSaved: (v) => _firstName = v!.trim(),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Middle Name (optional)
+                              TextFormField(
+                                decoration: _fieldDecoration(
+                                    'Middle Name (optional)',
+                                    Icons.person_outline),
+                                textCapitalization: TextCapitalization.words,
+                                onSaved: (v) =>
+                                    _middleName = v?.trim() ?? '',
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Last Name
+                              TextFormField(
+                                decoration: _fieldDecoration(
+                                    'Last Name', Icons.badge_outlined),
+                                textCapitalization: TextCapitalization.words,
+                                validator: (v) {
+                                  if (v == null || v.trim().isEmpty) {
+                                    return 'Please enter your last name.';
+                                  }
+                                  return null;
+                                },
+                                onSaved: (v) => _lastName = v!.trim(),
                               ),
                               const SizedBox(height: 14),
 
@@ -238,7 +303,12 @@ class _LoginScreenState extends State<LoginScreen>
                             // Email
                             TextFormField(
                               decoration: _fieldDecoration(
-                                  'University Email', Icons.email_outlined),
+                                      'University Email', Icons.email_outlined)
+                                  .copyWith(
+                                hintText: _isLogin
+                                    ? null
+                                    : 'student@asu.edu.jo',
+                              ),
                               keyboardType: TextInputType.emailAddress,
                               validator: (v) {
                                 if (v == null || v.isEmpty) {
@@ -246,7 +316,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 }
                                 if (!_isLogin &&
                                     !_authService.isValidEduEmail(v)) {
-                                  return 'Must be a valid university .edu email.';
+                                  return 'Only @asu.edu.jo email addresses are allowed.';
                                 }
                                 return null;
                               },

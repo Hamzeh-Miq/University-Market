@@ -36,3 +36,25 @@ final currentUserModelProvider = StreamProvider.autoDispose<UserModel?>((ref) {
     error: (_, __) => Stream.value(null),
   );
 });
+
+/// Convenience provider: true when the current user has the 'admin' role.
+final isAdminProvider = Provider<bool>((ref) {
+  return ref.watch(currentUserModelProvider).value?.role == 'admin';
+});
+
+/// Fetches any user's public profile by their UID.
+/// Used to display seller info on listing/admin screens.
+final sellerProfileProvider = FutureProvider.autoDispose
+    .family<UserModel?, String>((ref, uid) async {
+  return UserService().getUserProfile(uid);
+});
+
+/// True when the current user has a paid, non-expired semester subscription.
+/// Checks both the [isSubscribed] flag and [subscriptionExpiresAt] against now.
+final hasActiveSubscriptionProvider = Provider<bool>((ref) {
+  final user = ref.watch(currentUserModelProvider).value;
+  if (user == null || !user.isSubscribed) return false;
+  final expiry = user.subscriptionExpiresAt;
+  if (expiry == null) return false;
+  return expiry.isAfter(DateTime.now());
+});

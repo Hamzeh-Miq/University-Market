@@ -26,20 +26,29 @@ class ProductService {
     }
 
     if (maxPrice != null) {
-      // Range filter on 'price' requires orderBy on the same field
-      query = query
-          .where('price', isLessThanOrEqualTo: maxPrice)
-          .orderBy('price', descending: false);
+      // Range filter on 'price' — do NOT add orderBy here.
+      // Combining category equality + price range + orderBy(price) requires
+      // a very specific composite index per field combo. Instead we filter
+      // server-side and sort the results client-side to avoid index mismatches.
+      query = query.where('price', isLessThanOrEqualTo: maxPrice);
     } else {
       query = query.orderBy(sortBy, descending: descending);
     }
 
     try {
       final snapshot = await query.get();
-      return snapshot.docs
+      final results = snapshot.docs
           .map((doc) =>
               ProductModel.fromJson(doc.data() as Map<String, dynamic>, doc.id))
           .toList();
+
+      // When a price range filter is active, sort client-side by price asc
+      // (server-side orderBy was intentionally omitted to avoid index conflicts).
+      if (maxPrice != null) {
+        results.sort((a, b) => a.price.compareTo(b.price));
+      }
+
+      return results;
     } catch (e) {
       throw Exception('Failed to fetch listings: $e');
     }
@@ -103,9 +112,16 @@ class ProductService {
   }
 
   /// Adds a new product listing to Firestore.
+  /// Uses a pre-allocated document reference so the productId is stored
+  /// inside the document data and always matches the Firestore path.
   Future<void> addProduct(ProductModel product) async {
     try {
-      await _db.collection('products').add(product.toJson());
+      // Allocate a real Firestore document ID first.
+      final docRef = _db.collection('products').doc();
+      await docRef.set({
+        ...product.toJson(),
+        'productId': docRef.id, // store the real ID inside the doc
+      });
     } catch (e) {
       throw Exception('Failed to add product: $e');
     }

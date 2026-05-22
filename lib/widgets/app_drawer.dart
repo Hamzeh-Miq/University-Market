@@ -39,19 +39,63 @@ class AppDrawer extends ConsumerWidget {
                   child: const Icon(Icons.storefront_outlined, color: Colors.white, size: 40),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'UniTrade',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+                // Name row with optional admin badge
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        userModel?.fullName.isNotEmpty == true
+                            ? userModel!.fullName
+                            : 'UniTrade',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (isAdmin) ...
+                      [
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B), // amber
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.shield_rounded,
+                                  size: 11, color: Colors.white),
+                              SizedBox(width: 3),
+                              Text(
+                                'ADMIN',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                  ],
                 ),
-                const Text(
-                  'Campus Marketplace',
-                  style: TextStyle(
+                const SizedBox(height: 2),
+                Text(
+                  userModel?.email ?? 'Campus Marketplace',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
                     color: Colors.white70,
-                    fontSize: 14,
+                    fontSize: 13,
                   ),
                 ),
               ],
@@ -68,7 +112,7 @@ class AppDrawer extends ConsumerWidget {
                 onTap: () {
                   Navigator.pop(context); // Close drawer
                   Navigator.of(context).pushNamed(
-                    AppRoutes.departmentListings,
+                    AppRoutes.allListings,
                     arguments: cat.name,
                   );
                 },
@@ -104,9 +148,48 @@ class AppDrawer extends ConsumerWidget {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout, color: AppColors.error),
-            title: const Text('Logout', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.error)),
-            onTap: () {
-              ref.read(authServiceProvider).signOut();
+            title: const Text('Logout',
+                style: TextStyle(
+                    fontWeight: FontWeight.w600, color: AppColors.error)),
+            onTap: () async {
+              // Show confirm dialog BEFORE closing the drawer so
+              // the context is still valid for showDialog.
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (_) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  title: const Text('Sign Out'),
+                  content:
+                      const Text('Are you sure you want to sign out?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.error),
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Sign Out'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed != true) return;
+
+              // Close drawer, sign out, clear navigation stack.
+              if (context.mounted) Navigator.pop(context);
+
+              await ref.read(authServiceProvider).signOut();
+
+              if (context.mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  AppRoutes.welcome,
+                  (route) => false,
+                );
+              }
             },
           ),
         ],

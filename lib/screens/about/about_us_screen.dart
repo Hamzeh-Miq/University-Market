@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
+import '../../constants/app_routes.dart';
 import '../../data/dummy_categories.dart';
+import '../../widgets/app_bottom_nav.dart';
 
 /// Static informational page about UniTrade and the university.
 class AboutUsScreen extends StatelessWidget {
@@ -10,12 +12,14 @@ class AboutUsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: const AppBottomNav(currentRoute: AppRoutes.aboutUs),
       body: CustomScrollView(
         slivers: [
           // ── Hero SliverAppBar ──────────────────────────────────────
           SliverAppBar(
             expandedHeight: 220,
             pinned: true,
+            automaticallyImplyLeading: false,
             backgroundColor: AppColors.primary,
             iconTheme: const IconThemeData(color: Colors.white),
             flexibleSpace: FlexibleSpaceBar(

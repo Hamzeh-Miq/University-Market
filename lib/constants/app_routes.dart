@@ -2,7 +2,9 @@
 class AppRoutes {
   AppRoutes._();
 
-  static const String login = '/';
+  static const String welcome = '/';
+  static const String login = '/auth/login';
+  static const String emailVerification = '/auth/verify-email';
   static const String home = '/home';
 
   // About
@@ -12,6 +14,7 @@ class AppRoutes {
   static const String listingDetail = '/listing/detail';
   static const String addListing = '/listing/add';
   static const String departmentListings = '/listing/department';
+  static const String allListings = '/listing/all';
   static const String pendingListings = '/listing/pending';
 
   // Category
@@ -24,4 +27,12 @@ class AppRoutes {
   // Profile
   static const String profile = '/profile';
   static const String editProfile = '/profile/edit';
+  static const String sellerProfile = '/profile/seller';
+
+  // Settings
+  static const String settings = '/settings';
+
+  // Subscription
+  static const String payment = '/subscription/payment';
+  static const String subscribedUsers = '/subscription/subscribers';
 }
