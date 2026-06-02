@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_routes.dart';
+import '../../constants/product_status.dart';
 import '../../models/product_model.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/product_service.dart';
 
 /// Displays all listings for a specific department/category with sort & delete.
 class DepartmentListingsScreen extends ConsumerStatefulWidget {
@@ -27,16 +27,19 @@ class _DepartmentListingsScreenState
     super.initState();
     // Set the category filter on first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(productFilterProvider.notifier).updateFilter(
-            ProductFilter(
-                category: widget.category, sortOption: _selectedSort),
+      ref
+          .read(productFilterProvider.notifier)
+          .updateFilter(
+            ProductFilter(category: widget.category, sortOption: _selectedSort),
           );
     });
   }
 
   void _onSortChanged(ProductSortOption sort) {
     setState(() => _selectedSort = sort);
-    ref.read(productFilterProvider.notifier).updateFilter(
+    ref
+        .read(productFilterProvider.notifier)
+        .updateFilter(
           ProductFilter(category: widget.category, sortOption: sort),
         );
   }
@@ -46,15 +49,14 @@ class _DepartmentListingsScreenState
       context: ctx,
       builder: (_) => AlertDialog(
         title: const Text('Delete Listing'),
-        content:
-            const Text('Are you sure you want to delete this listing?'),
+        content: const Text('Are you sure you want to delete this listing?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-            style:
-                FilledButton.styleFrom(backgroundColor: AppColors.error),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete'),
           ),
@@ -64,14 +66,16 @@ class _DepartmentListingsScreenState
 
     if (confirmed == true) {
       try {
-        await ProductService().deleteProduct(productId);
+        await ref.read(productServiceProvider).deleteProduct(productId);
         // Force refresh
         // ignore: unused_result
         ref.refresh(productListProvider);
       } catch (e) {
         if (ctx.mounted) {
           ScaffoldMessenger.of(ctx).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
+            const SnackBar(
+              content: Text('Could not delete the listing. Please try again.'),
+            ),
           );
         }
       }
@@ -92,25 +96,27 @@ class _DepartmentListingsScreenState
         title: Text(
           widget.category,
           style: const TextStyle(
-              fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
         ),
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () =>
-            Navigator.of(context).pushNamed(AppRoutes.addListing),
+        onPressed: () => Navigator.of(context).pushNamed(AppRoutes.addListing),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add Listing',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Add Listing',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
       body: Column(
         children: [
           // ── Sort chips ───────────────────────────────────────────
           Container(
             color: Colors.white,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: ProductSortOption.values.map((opt) {
                 final selected = opt == _selectedSort;
@@ -127,9 +133,8 @@ class _DepartmentListingsScreenState
                     ),
                     backgroundColor: AppColors.background,
                     side: BorderSide(
-                        color: selected
-                            ? AppColors.primary
-                            : AppColors.border),
+                      color: selected ? AppColors.primary : AppColors.border,
+                    ),
                   ),
                 );
               }).toList(),
@@ -147,13 +152,17 @@ class _DepartmentListingsScreenState
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline,
-                          size: 48, color: AppColors.error),
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: AppColors.error,
+                      ),
                       const SizedBox(height: 12),
-                      Text('Failed to load listings.\n$err',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              color: AppColors.textSecondary)),
+                      const Text(
+                        'Failed to load listings.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
                     ],
                   ),
                 ),
@@ -164,15 +173,19 @@ class _DepartmentListingsScreenState
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.inbox_outlined,
-                            size: 64,
-                            color: AppColors.textHint.withValues(alpha: 0.5)),
+                        Icon(
+                          Icons.inbox_outlined,
+                          size: 64,
+                          color: AppColors.textHint.withValues(alpha: 0.5),
+                        ),
                         const SizedBox(height: 16),
                         const Text(
                           'No listings yet.\nBe the first to post!',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                              color: AppColors.textSecondary, fontSize: 15),
+                            color: AppColors.textSecondary,
+                            fontSize: 15,
+                          ),
                         ),
                       ],
                     ),
@@ -217,8 +230,7 @@ class _ProductListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dismissible(
       key: Key(product.productId),
-      direction:
-          isOwner ? DismissDirection.endToStart : DismissDirection.none,
+      direction: isOwner ? DismissDirection.endToStart : DismissDirection.none,
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
@@ -233,8 +245,9 @@ class _ProductListTile extends StatelessWidget {
         return false; // We handle deletion manually
       },
       child: GestureDetector(
-        onTap: () => Navigator.of(context)
-            .pushNamed(AppRoutes.listingDetail, arguments: product.productId),
+        onTap: () => Navigator.of(
+          context,
+        ).pushNamed(AppRoutes.listingDetail, arguments: product.productId),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -266,13 +279,24 @@ class _ProductListTile extends StatelessWidget {
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
                           return const Center(
-                            child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
                           );
                         },
                         errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.error_outline, color: AppColors.error),
+                            const Icon(
+                              Icons.error_outline,
+                              color: AppColors.error,
+                            ),
                       )
-                    : const Icon(Icons.image_outlined, color: AppColors.primary, size: 32),
+                    : const Icon(
+                        Icons.image_outlined,
+                        color: AppColors.primary,
+                        size: 32,
+                      ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -292,16 +316,21 @@ class _ProductListTile extends StatelessWidget {
                     const SizedBox(height: 4),
                     if (product.courseCode != null &&
                         product.courseCode!.isNotEmpty)
-                      Text(product.courseCode!,
-                          style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12)),
+                      Text(
+                        product.courseCode!,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.accent.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(20),
@@ -318,15 +347,19 @@ class _ProductListTile extends StatelessWidget {
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppColors.success.withValues(alpha: 0.1),
+                            color: ProductStatus.color(
+                              product.status,
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            product.status,
-                            style: const TextStyle(
-                              color: AppColors.success,
+                            ProductStatus.label(product.status),
+                            style: TextStyle(
+                              color: ProductStatus.color(product.status),
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
@@ -339,8 +372,10 @@ class _ProductListTile extends StatelessWidget {
               ),
               if (isOwner)
                 IconButton(
-                  icon: const Icon(Icons.delete_outline,
-                      color: AppColors.error),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.error,
+                  ),
                   onPressed: onDelete,
                 ),
             ],

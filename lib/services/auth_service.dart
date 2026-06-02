@@ -4,13 +4,24 @@ import 'user_service.dart';
 
 /// Handles Firebase Authentication operations for UniTrade.
 class AuthService {
+  static const String studentEmailDomain = '@students.asu.edu.jo';
+  static const String adminEmail = '202120554@students.asu.edu.jo';
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final UserService _userService = UserService();
 
-  /// Validates if the email belongs to Applied Science University (@asu.edu.jo).
-  bool isValidEduEmail(String email) {
-    return email.trim().toLowerCase().endsWith('@asu.edu.jo');
+  /// Pure helper so the student email rule can be tested without Firebase.
+  static bool isStudentEmail(String email) {
+    return email.trim().toLowerCase().endsWith(studentEmailDomain);
   }
+
+  /// Validates if the email belongs to Applied Science University students.
+  bool isValidEduEmail(String email) {
+    return isStudentEmail(email);
+  }
+
+  /// Returns a stream of the current user's authentication state.
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   /// Resends the Firebase email-verification link to the current signed-in user.
   /// Throws if no user is signed in.
@@ -39,7 +50,8 @@ class AuthService {
   }) async {
     if (!isValidEduEmail(email)) {
       throw Exception(
-          'Access restricted. Only @asu.edu.jo email addresses are allowed.');
+        'Access restricted. Only $studentEmailDomain email addresses are allowed.',
+      );
     }
 
     try {
@@ -51,10 +63,9 @@ class AuthService {
       // Send verification email
       await userCredential.user?.sendEmailVerification();
 
-      final String role =
-          email.trim().toLowerCase() == '202120554@students.asu.edu.jo'
-              ? 'admin'
-              : 'user';
+      final String role = email.trim().toLowerCase() == adminEmail
+          ? 'admin'
+          : 'user';
 
       // Build and store the user profile in Firestore
       final userModel = UserModel(

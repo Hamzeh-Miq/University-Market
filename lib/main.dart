@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
 import 'constants/app_colors.dart';
 import 'constants/app_routes.dart';
@@ -8,15 +9,9 @@ import 'router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(
-    const ProviderScope(
-      child: UniTradeApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: UniTradeApp()));
 }
 
 class UniTradeApp extends StatelessWidget {
@@ -30,6 +25,8 @@ class UniTradeApp extends StatelessWidget {
       theme: ThemeData(
         primaryColor: AppColors.primary,
         scaffoldBackgroundColor: AppColors.background,
+        textTheme: GoogleFonts.interTextTheme(),
+        primaryTextTheme: GoogleFonts.interTextTheme(),
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,
           surface: AppColors.surface,
@@ -46,7 +43,6 @@ class UniTradeApp extends StatelessWidget {
           fillColor: Colors.white,
           focusColor: AppColors.primary,
         ),
-        fontFamily: 'Inter',
       ),
       initialRoute: AppRoutes.welcome,
       onGenerateRoute: AppRouter.generateRoute,

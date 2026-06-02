@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../constants/app_colors.dart';
+import '../../constants/product_status.dart';
 import '../../data/dummy_categories.dart';
 import '../../models/product_model.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/product_service.dart';
+import '../../providers/product_provider.dart';
 import '../../services/storage_service.dart';
 import '../../widgets/subscription_gate.dart';
 
@@ -49,13 +50,17 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
       filled: true,
       fillColor: AppColors.background,
       border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
       enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.border)),
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
       focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      ),
     );
   }
 
@@ -75,9 +80,9 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
       }
     }
   }
@@ -135,11 +140,14 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
       List<String> uploadedUrls = [];
       if (_selectedImages.isNotEmpty) {
         final storageService = StorageService();
-        for (var file in _selectedImages) {
+        for (final file in _selectedImages) {
           final url = await storageService.compressAndUploadImage(file);
           uploadedUrls.add(url);
         }
       }
+
+      final userProfile = ref.read(currentUserModelProvider).value;
+      final university = userProfile?.university;
 
       final product = ProductModel(
         productId: '',
@@ -152,16 +160,19 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
             ? null
             : _courseController.text.trim().toUpperCase(),
         images: uploadedUrls,
-        status: 'Pending', // Requires admin approval before going live
+        status: ProductStatus.legacyPending, // Required by Firestore rules
         createdAt: DateTime.now(),
+        sellerUniversity: university,
       );
 
-      await ProductService().addProduct(product);
+      await ref.read(productServiceProvider).addProduct(product);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Listing submitted! It will appear after admin approval.'),
+            content: Text(
+              'Listing submitted! It will appear after admin approval.',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
@@ -170,7 +181,9 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          const SnackBar(
+            content: Text('Failed to submit listing. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -192,197 +205,244 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
         title: const Text(
           'Post a Listing',
           style: TextStyle(
-              fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
         ),
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
       body: hasAccess
           ? SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Image picker row
-              SizedBox(
-                height: 120,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _selectedImages.length < 5 ? _selectedImages.length + 1 : 5,
-                  itemBuilder: (context, index) {
-                    if (index == _selectedImages.length && _selectedImages.length < 5) {
-                      return GestureDetector(
-                        onTap: _showImagePickerModal,
-                        child: Container(
-                          width: 120,
-                          margin: const EdgeInsets.only(right: 12),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.07),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.3),
-                                style: BorderStyle.solid),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.add_photo_alternate_outlined,
-                                  size: 32,
-                                  color: AppColors.primary.withValues(alpha: 0.6)),
-                              const SizedBox(height: 8),
-                              Text('Add Photo',
-                                  style: TextStyle(
-                                      color: AppColors.primary.withValues(alpha: 0.7),
-                                      fontSize: 13)),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-
-                    return Container(
-                      width: 120,
-                      margin: const EdgeInsets.only(right: 12),
-                      child: Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(18),
-                            child: kIsWeb
-                                ? Image.network(
-                                    _selectedImages[index].path,
-                                    width: 120,
-                                    height: 120,
-                                    fit: BoxFit.cover,
-                                  )
-                                : Image.file(
-                                    File(_selectedImages[index].path),
-                                    width: 120,
-                                    height: 120,
-                                    fit: BoxFit.cover,
-                                  ),
-                          ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: GestureDetector(
-                              onTap: () => _removeImage(index),
+              padding: const EdgeInsets.all(20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Image picker row
+                    SizedBox(
+                      height: 120,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _selectedImages.length < 5
+                            ? _selectedImages.length + 1
+                            : 5,
+                        itemBuilder: (context, index) {
+                          if (index == _selectedImages.length &&
+                              _selectedImages.length < 5) {
+                            return GestureDetector(
+                              onTap: _showImagePickerModal,
                               child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Colors.black54,
-                                  shape: BoxShape.circle,
+                                width: 120,
+                                margin: const EdgeInsets.only(right: 12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.07,
+                                  ),
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                    style: BorderStyle.solid,
+                                  ),
                                 ),
-                                child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.add_photo_alternate_outlined,
+                                      size: 32,
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.6,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Add Photo',
+                                      style: TextStyle(
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.7,
+                                        ),
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          return Container(
+                            width: 120,
+                            margin: const EdgeInsets.only(right: 12),
+                            child: Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: kIsWeb
+                                      ? Image.network(
+                                          _selectedImages[index].path,
+                                          width: 120,
+                                          height: 120,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Image.file(
+                                          File(_selectedImages[index].path),
+                                          width: 120,
+                                          height: 120,
+                                          fit: BoxFit.cover,
+                                        ),
+                                ),
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: GestureDetector(
+                                    onTap: () => _removeImage(index),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.black54,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.close,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Title
+                    TextFormField(
+                      controller: _titleController,
+                      decoration: _dec(
+                        'Title',
+                        Icons.title,
+                        hint: 'e.g. Calculus Textbook',
+                      ),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Title is required.'
+                          : null,
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Description
+                    TextFormField(
+                      controller: _descController,
+                      decoration: _dec(
+                        'Description',
+                        Icons.description_outlined,
+                        hint: 'Describe your item...',
+                      ),
+                      maxLines: 4,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Description is required.'
+                          : null,
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Price
+                    TextFormField(
+                      controller: _priceController,
+                      decoration: _dec(
+                        'Price (JD)',
+                        Icons.attach_money_rounded,
+                        hint: '0.00',
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Price is required.';
+                        }
+                        final parsed = double.tryParse(v.trim());
+                        if (parsed == null || parsed < 0) {
+                          return 'Enter a valid price.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Category dropdown
+                    DropdownButtonFormField<String>(
+                      value: _selectedCategory,
+                      decoration: _dec('Category', Icons.category_outlined),
+                      items: dummyCategories
+                          .map(
+                            (cat) => DropdownMenuItem(
+                              value: cat.name,
+                              child: Row(
+                                children: [
+                                  Icon(cat.icon, color: cat.color, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(cat.name),
+                                ],
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedCategory = v),
+                      validator: (v) =>
+                          v == null ? 'Please select a category.' : null,
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Course code (optional)
+                    TextFormField(
+                      controller: _courseController,
+                      decoration: _dec(
+                        'Course Code (optional)',
+                        Icons.book_outlined,
+                        hint: 'e.g. CS101',
+                      ),
+                      textCapitalization: TextCapitalization.characters,
+                    ),
+                    const SizedBox(height: 28),
+
+                    // Submit button
+                    _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : FilledButton.icon(
+                            onPressed: _submit,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.publish_rounded,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              'Post Listing',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    );
-                  },
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-
-              // Title
-              TextFormField(
-                controller: _titleController,
-                decoration: _dec('Title', Icons.title, hint: 'e.g. Calculus Textbook'),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Title is required.' : null,
-              ),
-              const SizedBox(height: 14),
-
-              // Description
-              TextFormField(
-                controller: _descController,
-                decoration: _dec('Description', Icons.description_outlined,
-                    hint: 'Describe your item...'),
-                maxLines: 4,
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Description is required.'
-                    : null,
-              ),
-              const SizedBox(height: 14),
-
-              // Price
-              TextFormField(
-                controller: _priceController,
-                decoration: _dec('Price (JD)', Icons.attach_money_rounded,
-                    hint: '0.00'),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Price is required.';
-                  final parsed = double.tryParse(v.trim());
-                  if (parsed == null || parsed < 0) {
-                    return 'Enter a valid price.';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 14),
-
-              // Category dropdown
-              DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                decoration: _dec('Category', Icons.category_outlined),
-                items: dummyCategories
-                    .map((cat) => DropdownMenuItem(
-                          value: cat.name,
-                          child: Row(
-                            children: [
-                              Icon(cat.icon, color: cat.color, size: 18),
-                              const SizedBox(width: 8),
-                              Text(cat.name),
-                            ],
-                          ),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedCategory = v),
-                validator: (v) =>
-                    v == null ? 'Please select a category.' : null,
-              ),
-              const SizedBox(height: 14),
-
-              // Course code (optional)
-              TextFormField(
-                controller: _courseController,
-                decoration: _dec('Course Code (optional)',
-                    Icons.book_outlined, hint: 'e.g. CS101'),
-                textCapitalization: TextCapitalization.characters,
-              ),
-              const SizedBox(height: 28),
-
-              // Submit button
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : FilledButton.icon(
-                      onPressed: _submit,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
-                      ),
-                      icon: const Icon(Icons.publish_rounded,
-                          color: Colors.white),
-                      label: const Text(
-                        'Post Listing',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-            ],
-          ),
-        ),
-      )
-      : const SubscriptionGate(
-          featureLabel: 'posting listings',
-          fullPage: true,
-          child: SizedBox.shrink(),
-        ),
+            )
+          : const SubscriptionGate(
+              featureLabel: 'posting listings',
+              fullPage: true,
+              child: SizedBox.shrink(),
+            ),
     );
   }
 }

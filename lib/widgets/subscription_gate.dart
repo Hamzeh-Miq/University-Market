@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_routes.dart';
+import '../constants/subscription_constants.dart';
 import '../providers/auth_provider.dart';
 
 /// Wraps [child] behind a subscription paywall.
@@ -54,9 +55,7 @@ class _InlineGate extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.primary.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.25),
-          ),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
         ),
         child: Row(
           children: [
@@ -72,8 +71,11 @@ class _InlineGate extends StatelessWidget {
                 ),
               ),
             ),
-            const Icon(Icons.chevron_right_rounded,
-                color: AppColors.primary, size: 20),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.primary,
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -111,8 +113,11 @@ class _FullPageGate extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(Icons.lock_rounded,
-                  color: Colors.white, size: 40),
+              child: const Icon(
+                Icons.lock_rounded,
+                color: Colors.white,
+                size: 40,
+              ),
             ),
             const SizedBox(height: 28),
             const Text(
@@ -125,7 +130,7 @@ class _FullPageGate extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Unlock $featureLabel and everything UniTrade has to offer with a semester subscription.',
+              'Unlock $featureLabel and everything UniTrade has to offer with a ${SubscriptionConstants.subscriptionDurationLabel} subscription.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 15,
@@ -149,10 +154,7 @@ class _FullPageGate extends StatelessWidget {
                 icon: const Icon(Icons.credit_card_rounded),
                 label: const Text(
                   'Subscribe Now',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -209,12 +211,15 @@ class _SubscriptionSheet extends StatelessWidget {
               ),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(Icons.school_rounded,
-                color: Colors.white, size: 36),
+            child: const Icon(
+              Icons.school_rounded,
+              color: Colors.white,
+              size: 36,
+            ),
           ),
           const SizedBox(height: 16),
           const Text(
-            'UniTrade Semester Pass',
+            'UniTrade Annual Pass',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -222,10 +227,10 @@ class _SubscriptionSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            '4 months · Full access to the campus marketplace',
+          Text(
+            '${SubscriptionConstants.subscriptionDurationLabel} · Full access to the campus marketplace',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,
             ),
@@ -244,8 +249,11 @@ class _SubscriptionSheet extends StatelessWidget {
                       color: AppColors.success.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.check_rounded,
-                        color: AppColors.success, size: 16),
+                    child: const Icon(
+                      Icons.check_rounded,
+                      color: AppColors.success,
+                      size: 16,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Text(
@@ -281,10 +289,7 @@ class _SubscriptionSheet extends StatelessWidget {
               icon: const Icon(Icons.credit_card_rounded),
               label: const Text(
                 'Subscribe Now',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
           ),

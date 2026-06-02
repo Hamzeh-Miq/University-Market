@@ -24,7 +24,9 @@ class ConversationModel {
   });
 
   factory ConversationModel.fromJson(
-      Map<String, dynamic> json, String documentId) {
+    Map<String, dynamic> json,
+    String documentId,
+  ) {
     return ConversationModel(
       conversationId: documentId,
       participants: List<String>.from(json['participants'] ?? []),
@@ -64,8 +66,7 @@ class MessageModel {
     required this.timestamp,
   });
 
-  factory MessageModel.fromJson(
-      Map<String, dynamic> json, String documentId) {
+  factory MessageModel.fromJson(Map<String, dynamic> json, String documentId) {
     return MessageModel(
       messageId: documentId,
       senderId: json['senderId'] ?? '',

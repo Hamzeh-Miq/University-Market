@@ -4,9 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_routes.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/auth_service.dart';
 
-/// Shown when the user is signed in but their @asu.edu.jo email is not yet
+/// Shown when the user is signed in but their university email is not yet
 /// verified. Guides them to check their inbox and provides a resend option.
 class EmailVerificationScreen extends ConsumerStatefulWidget {
   const EmailVerificationScreen({super.key});
@@ -19,8 +18,6 @@ class EmailVerificationScreen extends ConsumerStatefulWidget {
 class _EmailVerificationScreenState
     extends ConsumerState<EmailVerificationScreen>
     with SingleTickerProviderStateMixin {
-  final AuthService _authService = AuthService();
-
   bool _isSending = false;
   bool _isChecking = false;
   String? _statusMessage;
@@ -63,7 +60,9 @@ class _EmailVerificationScreenState
   /// Silently polls Firebase; navigates to home if verified.
   Future<void> _silentlyCheckVerification() async {
     try {
-      final verified = await _authService.reloadAndCheckVerified();
+      final verified = await ref
+          .read(authServiceProvider)
+          .reloadAndCheckVerified();
       if (verified && mounted) {
         _autoCheckTimer?.cancel();
         Navigator.of(context).pushReplacementNamed(AppRoutes.home);
@@ -80,7 +79,9 @@ class _EmailVerificationScreenState
       _statusMessage = null;
     });
     try {
-      final verified = await _authService.reloadAndCheckVerified();
+      final verified = await ref
+          .read(authServiceProvider)
+          .reloadAndCheckVerified();
       if (!mounted) return;
       if (verified) {
         _autoCheckTimer?.cancel();
@@ -123,13 +124,13 @@ class _EmailVerificationScreenState
       _statusMessage = null;
     });
     try {
-      await _authService.resendVerificationEmail();
+      await ref.read(authServiceProvider).resendVerificationEmail();
       _lastSentAt = DateTime.now();
       if (mounted) {
         setState(() {
           _statusIsSuccess = true;
           _statusMessage =
-              'Verification email sent! Check your @asu.edu.jo inbox.';
+              'Verification email sent. Check your university inbox.';
         });
       }
     } catch (e) {
@@ -145,7 +146,7 @@ class _EmailVerificationScreenState
   }
 
   Future<void> _signOut() async {
-    await _authService.signOut();
+    await ref.read(authServiceProvider).signOut();
     if (mounted) {
       Navigator.of(context).pushReplacementNamed(AppRoutes.welcome);
     }
@@ -216,8 +217,10 @@ class _EmailVerificationScreenState
                 ),
                 const SizedBox(height: 6),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
@@ -305,7 +308,9 @@ class _EmailVerificationScreenState
                           label: const Text(
                             "I've verified my email",
                             style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.primary,
@@ -325,8 +330,10 @@ class _EmailVerificationScreenState
                       ? const Center(child: CircularProgressIndicator())
                       : OutlinedButton.icon(
                           onPressed: _resendEmail,
-                          icon: const Icon(Icons.send_outlined,
-                              color: AppColors.primary),
+                          icon: const Icon(
+                            Icons.send_outlined,
+                            color: AppColors.primary,
+                          ),
                           label: const Text(
                             'Resend verification email',
                             style: TextStyle(
@@ -348,8 +355,11 @@ class _EmailVerificationScreenState
                 // ── Sign out link ──────────────────────────────────────
                 TextButton.icon(
                   onPressed: _signOut,
-                  icon: Icon(Icons.logout_rounded,
-                      size: 16, color: AppColors.textSecondary),
+                  icon: Icon(
+                    Icons.logout_rounded,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
                   label: Text(
                     'Sign out and use a different account',
                     style: TextStyle(

@@ -13,11 +13,13 @@ class ChatService {
         .where('participants', arrayContains: userId)
         .orderBy('lastMessageTime', descending: true)
         .snapshots()
-        .map((s) => s.docs
-            .map((d) => ConversationModel.fromJson(d.data(), d.id))
-            // Hide conversations this user has soft-deleted
-            .where((c) => !c.deletedBy.contains(userId))
-            .toList());
+        .map(
+          (s) => s.docs
+              .map((d) => ConversationModel.fromJson(d.data(), d.id))
+              // Hide conversations this user has soft-deleted
+              .where((c) => !c.deletedBy.contains(userId))
+              .toList(),
+        );
   }
 
   /// Returns a real-time stream of messages in a conversation,
@@ -29,9 +31,10 @@ class ChatService {
         .collection('messages')
         .orderBy('timestamp', descending: false)
         .snapshots()
-        .map((s) => s.docs
-            .map((d) => MessageModel.fromJson(d.data(), d.id))
-            .toList());
+        .map(
+          (s) =>
+              s.docs.map((d) => MessageModel.fromJson(d.data(), d.id)).toList(),
+        );
   }
 
   /// Sends a message and atomically updates the conversation's lastMessage.
@@ -57,27 +60,22 @@ class ChatService {
 
       final batch = _db.batch();
       batch.set(msgRef, message.toJson());
-      batch.update(
-        _db.collection('conversations').doc(conversationId),
-        {
-          'lastMessage': text,
-          'lastMessageTime': Timestamp.fromDate(now),
-          'lastSenderId': senderId,
-          // Restore the conversation for both users when a new message arrives
-          'deletedBy': [],
-        },
-      );
+      batch.update(_db.collection('conversations').doc(conversationId), {
+        'lastMessage': text,
+        'lastMessageTime': Timestamp.fromDate(now),
+        'lastSenderId': senderId,
+        // Restore the conversation for both users when a new message arrives
+        'deletedBy': [],
+      });
       await batch.commit();
     } catch (e, st) {
-      Error.throwWithStackTrace(
-          Exception('Failed to send message: $e'), st);
+      Error.throwWithStackTrace(Exception('Failed to send message: $e'), st);
     }
   }
 
-  /// Returns the existing conversation ID for this buyer+seller pair,
+  /// Returns the existing conversation ID for this buyer+seller+product,
   /// or creates a new one and returns its ID.
-  /// One thread exists per person pair — multiple products share the same thread.
-  /// [productTitle] is stored only when creating a brand-new conversation.
+  /// Each listing gets its own thread so unrelated chats are not reused.
   Future<String> getOrCreateConversation({
     required String buyerId,
     required String sellerId,
@@ -85,18 +83,25 @@ class ChatService {
     required String productTitle,
   }) async {
     try {
+      if (buyerId == sellerId) {
+        throw Exception('You cannot start a conversation with yourself.');
+      }
+
       // Firestore can't query "array contains ALL of [a, b]" in one step,
       // so fetch all conversations the buyer is in, then filter client-side
-      // for the ones where the seller is also a participant.
+      // for the ones where the seller and product also match.
       final snapshot = await _db
           .collection('conversations')
           .where('participants', arrayContains: buyerId)
           .get();
 
       final existing = snapshot.docs.where((doc) {
-        final participants =
-            List<String>.from(doc.data()['participants'] ?? []);
-        return participants.contains(sellerId);
+        final participants = List<String>.from(
+          doc.data()['participants'] ?? [],
+        );
+        final existingProductId = doc.data()['productId'] as String? ?? '';
+        return participants.contains(sellerId) &&
+            existingProductId == productId;
       }).toList();
 
       if (existing.isNotEmpty) {
@@ -114,12 +119,13 @@ class ChatService {
         lastMessageTime: DateTime.now(),
       );
 
-      final ref =
-          await _db.collection('conversations').add(newConv.toJson());
+      final ref = await _db.collection('conversations').add(newConv.toJson());
       return ref.id;
     } catch (e, st) {
       Error.throwWithStackTrace(
-          Exception('Failed to create conversation: $e'), st);
+        Exception('Failed to create conversation: $e'),
+        st,
+      );
     }
   }
 
@@ -153,8 +159,7 @@ class ChatService {
 
       return result;
     } catch (e, st) {
-      Error.throwWithStackTrace(
-          Exception('Failed to fetch user info: $e'), st);
+      Error.throwWithStackTrace(Exception('Failed to fetch user info: $e'), st);
     }
   }
 
@@ -166,28 +171,27 @@ class ChatService {
         .where('participants', arrayContains: userId)
         .snapshots()
         .map((snapshot) {
-      int count = 0;
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        final lastMessage = (data['lastMessage'] as String?) ?? '';
-        final lastSenderId = (data['lastSenderId'] as String?) ?? '';
-        if (lastMessage.isEmpty || lastSenderId == userId) continue;
+          int count = 0;
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            final lastMessage = (data['lastMessage'] as String?) ?? '';
+            final lastSenderId = (data['lastSenderId'] as String?) ?? '';
+            if (lastMessage.isEmpty || lastSenderId == userId) continue;
 
-        // Check if user has read this conversation after the last message
-        final readAtMap =
-            (data['readAt'] as Map<String, dynamic>?) ?? {};
-        final readAtTs = readAtMap[userId] as Timestamp?;
-        final lastMsgTs = data['lastMessageTime'] as Timestamp?;
+            // Check if user has read this conversation after the last message
+            final readAtMap = (data['readAt'] as Map<String, dynamic>?) ?? {};
+            final readAtTs = readAtMap[userId] as Timestamp?;
+            final lastMsgTs = data['lastMessageTime'] as Timestamp?;
 
-        if (readAtTs == null || lastMsgTs == null) {
-          count++;
-        } else if (lastMsgTs.compareTo(readAtTs) > 0) {
-          // Last message arrived after the user's last read
-          count++;
-        }
-      }
-      return count;
-    });
+            if (readAtTs == null || lastMsgTs == null) {
+              count++;
+            } else if (lastMsgTs.compareTo(readAtTs) > 0) {
+              // Last message arrived after the user's last read
+              count++;
+            }
+          }
+          return count;
+        });
   }
 
   /// Marks all messages in [conversationId] as read for [userId] by
@@ -216,8 +220,7 @@ class ChatService {
           .doc(messageId)
           .delete();
     } catch (e, st) {
-      Error.throwWithStackTrace(
-          Exception('Failed to delete message: $e'), st);
+      Error.throwWithStackTrace(Exception('Failed to delete message: $e'), st);
     }
   }
 
@@ -225,14 +228,35 @@ class ChatService {
   /// The conversation remains in Firestore and the other participant can still
   /// see it. The chat is restored for both users when a new message is sent.
   Future<void> softDeleteConversation(
-      String conversationId, String userId) async {
+    String conversationId,
+    String userId,
+  ) async {
     try {
       await _db.collection('conversations').doc(conversationId).update({
         'deletedBy': FieldValue.arrayUnion([userId]),
       });
     } catch (e, st) {
       Error.throwWithStackTrace(
-          Exception('Failed to delete conversation: $e'), st);
+        Exception('Failed to delete conversation: $e'),
+        st,
+      );
+    }
+  }
+
+  /// Fetches a single conversation by its ID.
+  Future<ConversationModel?> fetchConversation(String conversationId) async {
+    try {
+      final doc = await _db
+          .collection('conversations')
+          .doc(conversationId)
+          .get();
+      if (!doc.exists) return null;
+      return ConversationModel.fromJson(doc.data()!, doc.id);
+    } catch (e, st) {
+      Error.throwWithStackTrace(
+        Exception('Failed to fetch conversation: $e'),
+        st,
+      );
     }
   }
 }

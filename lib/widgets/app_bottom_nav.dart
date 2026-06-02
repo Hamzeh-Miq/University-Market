@@ -14,17 +14,14 @@ class AppBottomNav extends StatelessWidget {
 
   void _navigate(BuildContext context, String route) {
     if (route == currentRoute) return;
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      route,
-      (r) => false,
-    );
+    Navigator.of(context).pushNamedAndRemoveUntil(route, (r) => false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.10),
@@ -57,7 +54,8 @@ class AppBottomNav extends StatelessWidget {
 
               // ── Post Ad (center, prominent) ──────────────────────────
               _PostAdButton(
-                onTap: () => Navigator.of(context).pushNamed(AppRoutes.addListing),
+                onTap: () =>
+                    Navigator.of(context).pushNamed(AppRoutes.addListing),
               ),
 
               // ── About Us ─────────────────────────────────────────────
@@ -113,7 +111,10 @@ class _NavItem extends StatelessWidget {
             children: [
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 3,
+                ),
                 decoration: BoxDecoration(
                   color: active
                       ? AppColors.primary.withValues(alpha: 0.12)
@@ -164,7 +165,7 @@ class _PostAdButton extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Color(0x441E88E5),
+                  color: AppColors.primary,
                   blurRadius: 12,
                   offset: Offset(0, 4),
                 ),

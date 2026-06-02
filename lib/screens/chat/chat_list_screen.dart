@@ -27,14 +27,17 @@ class ChatListScreen extends ConsumerWidget {
           elevation: 0,
         ),
         body: const Center(
-          child: Text('Please sign in to view messages.',
-              style: TextStyle(color: AppColors.textSecondary)),
+          child: Text(
+            'Please sign in to view messages.',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
         ),
       );
     }
 
-    final conversationsAsync =
-        ref.watch(conversationsProvider(currentUser.uid));
+    final conversationsAsync = ref.watch(
+      conversationsProvider(currentUser.uid),
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -49,9 +52,11 @@ class ChatListScreen extends ConsumerWidget {
         error: (e, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text('Error loading conversations: $e',
-                style: const TextStyle(color: AppColors.error),
-                textAlign: TextAlign.center),
+            child: Text(
+              'Failed to load conversations.',
+              style: const TextStyle(color: AppColors.error),
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
         data: (conversations) {
@@ -62,16 +67,20 @@ class ChatListScreen extends ConsumerWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.chat_bubble_outline,
-                        size: 72, color: AppColors.textHint),
+                    const Icon(
+                      Icons.chat_bubble_outline,
+                      size: 72,
+                      color: AppColors.textHint,
+                    ),
                     const SizedBox(height: 20),
-                    Text('No conversations yet.',
-                        style: AppTextStyles.bodyMedium),
+                    Text(
+                      'No conversations yet.',
+                      style: AppTextStyles.bodyMedium,
+                    ),
                     const SizedBox(height: 8),
                     const Text(
                       'Tap "Contact Seller" on a listing to start a conversation.',
-                      style: TextStyle(
-                          color: AppColors.textHint, fontSize: 13),
+                      style: TextStyle(color: AppColors.textHint, fontSize: 13),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -97,11 +106,13 @@ class ChatListScreen extends ConsumerWidget {
                     context: context,
                     builder: (_) => AlertDialog(
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       title: const Text('Delete Conversation'),
                       content: const Text(
-                          'This will be removed from your inbox. '
-                          'The other user will still see it.'),
+                        'This will be removed from your inbox. '
+                        'The other user will still see it.',
+                      ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context, false),
@@ -109,7 +120,8 @@ class ChatListScreen extends ConsumerWidget {
                         ),
                         FilledButton(
                           style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.error),
+                            backgroundColor: AppColors.error,
+                          ),
                           onPressed: () => Navigator.pop(context, true),
                           child: const Text('Delete'),
                         ),
@@ -122,17 +134,22 @@ class ChatListScreen extends ConsumerWidget {
                     await ref
                         .read(chatServiceProvider)
                         .softDeleteConversation(
-                            conv.conversationId, currentUser.uid);
+                          conv.conversationId,
+                          currentUser.uid,
+                        );
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('Conversation removed from inbox')),
+                          content: Text('Conversation removed from inbox'),
+                        ),
                       );
                     }
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e')),
+                        const SnackBar(
+                          content: Text('Could not remove the conversation.'),
+                        ),
                       );
                     }
                   }
@@ -147,14 +164,16 @@ class ChatListScreen extends ConsumerWidget {
                   child: const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.delete_outline,
-                          color: Colors.white, size: 26),
+                      Icon(Icons.delete_outline, color: Colors.white, size: 26),
                       SizedBox(height: 4),
-                      Text('Delete',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600)),
+                      Text(
+                        'Delete',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -207,8 +226,8 @@ class _ConversationTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userInfoAsync =
-        ref.watch(otherUserInfoProvider((otherUid, isAdmin)));
+    final userInfoAsync = ref.watch(otherUserInfoProvider((otherUid, isAdmin)));
+    final canViewOtherProfiles = ref.watch(canViewOtherProfilesProvider);
 
     return Card(
       elevation: 0,
@@ -224,23 +243,20 @@ class _ConversationTile extends ConsumerWidget {
           arguments: conversation.conversationId,
         ),
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
               // Avatar — tap to view profile
               GestureDetector(
-                onTap: otherUid.isNotEmpty
-                    ? () => Navigator.of(context).pushNamed(
-                          AppRoutes.sellerProfile,
-                          arguments: otherUid,
-                        )
+                onTap: otherUid.isNotEmpty && canViewOtherProfiles
+                    ? () => Navigator.of(
+                        context,
+                      ).pushNamed(AppRoutes.sellerProfile, arguments: otherUid)
                     : null,
                 child: userInfoAsync.when(
                   data: (info) => CircleAvatar(
                     radius: 26,
-                    backgroundColor:
-                        AppColors.primary.withValues(alpha: 0.15),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                     child: Text(
                       (info['name'] ?? 'U').isNotEmpty
                           ? info['name']![0].toUpperCase()
@@ -256,10 +272,8 @@ class _ConversationTile extends ConsumerWidget {
                     radius: 26,
                     backgroundColor: AppColors.primaryLight,
                   ),
-                  error: (_, __) => const CircleAvatar(
-                    radius: 26,
-                    child: Icon(Icons.person),
-                  ),
+                  error: (_, __) =>
+                      const CircleAvatar(radius: 26, child: Icon(Icons.person)),
                 ),
               ),
               const SizedBox(width: 14),
@@ -278,14 +292,14 @@ class _ConversationTile extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       // Admin-only: email + phone
-                      if (isAdmin &&
-                          (info['email']?.isNotEmpty ?? false)) ...[
+                      if (isAdmin && (info['email']?.isNotEmpty ?? false)) ...[
                         const SizedBox(height: 2),
                         Text(
                           '${info['email']} · ${info['phone'] ?? ''}',
                           style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary),
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -296,7 +310,9 @@ class _ConversationTile extends ConsumerWidget {
                         Text(
                           '📦 ${conversation.productTitle}',
                           style: const TextStyle(
-                              fontSize: 12, color: AppColors.textHint),
+                            fontSize: 12,
+                            color: AppColors.textHint,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -317,12 +333,16 @@ class _ConversationTile extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                          height: 14,
-                          width: 120,
-                          color: AppColors.primaryLight),
+                        height: 14,
+                        width: 120,
+                        color: AppColors.primaryLight,
+                      ),
                       const SizedBox(height: 6),
                       Container(
-                          height: 12, width: 80, color: AppColors.divider),
+                        height: 12,
+                        width: 80,
+                        color: AppColors.divider,
+                      ),
                     ],
                   ),
                   error: (_, __) => const Text('Unknown'),

@@ -7,7 +7,7 @@ import '../../data/dummy_categories.dart';
 import '../../models/product_model.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/product_service.dart';
+import '../../providers/watchlist_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/subscription_gate.dart';
 
@@ -15,8 +15,13 @@ import '../../widgets/subscription_gate.dart';
 class AllListingsScreen extends ConsumerStatefulWidget {
   /// Optional pre-selected category passed from the home screen.
   final String? initialCategory;
+  final bool offersOnly;
 
-  const AllListingsScreen({super.key, this.initialCategory});
+  const AllListingsScreen({
+    super.key,
+    this.initialCategory,
+    this.offersOnly = false,
+  });
 
   @override
   ConsumerState<AllListingsScreen> createState() => _AllListingsScreenState();
@@ -34,11 +39,10 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
   }
 
   void _applyFilter() {
-    ref.read(productFilterProvider.notifier).updateFilter(
-          ProductFilter(
-            category: _selectedCategory,
-            sortOption: _selectedSort,
-          ),
+    ref
+        .read(productFilterProvider.notifier)
+        .updateFilter(
+          ProductFilter(category: _selectedCategory, sortOption: _selectedSort),
         );
   }
 
@@ -60,8 +64,9 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
         content: const Text('Are you sure you want to delete this listing?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.pop(ctx, true),
@@ -72,13 +77,16 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
     );
     if (confirmed == true) {
       try {
-        await ProductService().deleteProduct(productId);
+        await ref.read(productServiceProvider).deleteProduct(productId);
         // ignore: unused_result
         ref.refresh(productListProvider);
       } catch (e) {
         if (ctx.mounted) {
-          ScaffoldMessenger.of(ctx)
-              .showSnackBar(SnackBar(content: Text('Error: $e')));
+          ScaffoldMessenger.of(ctx).showSnackBar(
+            const SnackBar(
+              content: Text('Could not delete the listing. Please try again.'),
+            ),
+          );
         }
       }
     }
@@ -86,11 +94,14 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final productsAsync = ref.watch(productListProvider);
+    final productsAsync = widget.offersOnly
+        ? ref.watch(discountedListingsProvider)
+        : ref.watch(productListProvider);
     final authState = ref.watch(authStateProvider);
     final currentUid = authState.value?.uid;
     final isSubscribed = ref.watch(hasActiveSubscriptionProvider);
     final isAdmin = ref.watch(isAdminProvider);
+    final favouriteIds = ref.watch(watchlistProvider);
     // Admins always have full access regardless of subscription.
     final hasAccess = isSubscribed || isAdmin;
 
@@ -99,24 +110,32 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'Departments',
-          style: TextStyle(
-              fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+        automaticallyImplyLeading: widget.offersOnly,
+        title: Text(
+          widget.offersOnly ? 'Special Offers' : 'Departments',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
         ),
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
-      bottomNavigationBar: const AppBottomNav(currentRoute: AppRoutes.allListings),
+      bottomNavigationBar: const AppBottomNav(
+        currentRoute: AppRoutes.allListings,
+      ),
       floatingActionButton: hasAccess
           ? FloatingActionButton.extended(
               onPressed: () =>
                   Navigator.of(context).pushNamed(AppRoutes.addListing),
               backgroundColor: AppColors.primary,
               icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('Add Listing',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
+              label: const Text(
+                'Add Listing',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             )
           : FloatingActionButton.extended(
               onPressed: () => showModalBottomSheet(
@@ -130,14 +149,18 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
               ),
               backgroundColor: AppColors.textHint,
               icon: const Icon(Icons.lock_rounded, color: Colors.white),
-              label: const Text('Subscribe to Post',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
+              label: const Text(
+                'Subscribe to Post',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
       body: Column(
         children: [
           // ── Filter bar (gated for non-subscribers) ───────────────────────
-          if (hasAccess)
+          if (!widget.offersOnly && hasAccess)
             Container(
               color: Colors.white,
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
@@ -208,7 +231,7 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
                 ],
               ),
             )
-          else
+          else if (!widget.offersOnly)
             // Locked filter bar placeholder
             GestureDetector(
               onTap: () => showModalBottomSheet(
@@ -222,11 +245,17 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
               ),
               child: Container(
                 color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.lock_rounded,
-                        color: AppColors.primary, size: 18),
+                    const Icon(
+                      Icons.lock_rounded,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
                     const SizedBox(width: 10),
                     const Expanded(
                       child: Text(
@@ -238,37 +267,47 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
                         ),
                       ),
                     ),
-                    const Icon(Icons.chevron_right_rounded,
-                        color: AppColors.primary, size: 18),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
                   ],
                 ),
               ),
             ),
-          const Divider(height: 1, color: AppColors.divider),
+          if (!widget.offersOnly)
+            const Divider(height: 1, color: AppColors.divider),
 
           // ── Active filter summary ─────────────────────────────────────
-          if (_selectedCategory != null)
+          if (!widget.offersOnly && _selectedCategory != null)
             Container(
               color: AppColors.primary.withValues(alpha: 0.06),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
-                  const Icon(Icons.filter_list_rounded,
-                      size: 16, color: AppColors.primary),
+                  const Icon(
+                    Icons.filter_list_rounded,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     '$_selectedCategory · ${_selectedSort.label}',
                     style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13),
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
                   const Spacer(),
                   GestureDetector(
                     onTap: () => _onCategoryChanged(null),
-                    child: const Icon(Icons.close_rounded,
-                        size: 16, color: AppColors.primary),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ],
               ),
@@ -277,22 +316,23 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
           // ── Listings ─────────────────────────────────────────────────
           Expanded(
             child: productsAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, _) => Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline,
-                          size: 48, color: AppColors.error),
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: AppColors.error,
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         'Failed to load listings.\n$err',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            color: AppColors.textSecondary),
+                        style: const TextStyle(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -304,16 +344,19 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.inbox_outlined,
-                            size: 64,
-                            color:
-                                AppColors.textHint.withValues(alpha: 0.5)),
+                        Icon(
+                          Icons.inbox_outlined,
+                          size: 64,
+                          color: AppColors.textHint.withValues(alpha: 0.5),
+                        ),
                         const SizedBox(height: 16),
                         const Text(
                           'No listings found.\nTry a different filter.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                              color: AppColors.textSecondary, fontSize: 15),
+                            color: AppColors.textSecondary,
+                            fontSize: 15,
+                          ),
                         ),
                       ],
                     ),
@@ -323,8 +366,12 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
                 // Non-subscribers see only the first kFreePreviewLimit items.
                 final visibleProducts = hasAccess
                     ? products
-                    : products.take(SubscriptionConstants.freePreviewLimit).toList();
-                final isLimited = !hasAccess && products.length > SubscriptionConstants.freePreviewLimit;
+                    : products
+                          .take(SubscriptionConstants.freePreviewLimit)
+                          .toList();
+                final isLimited =
+                    !hasAccess &&
+                    products.length > SubscriptionConstants.freePreviewLimit;
 
                 return Column(
                   children: [
@@ -339,6 +386,12 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
                           return _ProductListTile(
                             product: product,
                             isOwner: isOwner,
+                            isFavourite: favouriteIds.contains(
+                              product.productId,
+                            ),
+                            onFavouriteToggle: () => ref
+                                .read(watchlistProvider.notifier)
+                                .toggleItem(product.productId),
                             onDelete: () => _delete(ctx, product.productId),
                           );
                         },
@@ -362,8 +415,11 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.lock_rounded,
-                                  color: AppColors.primary, size: 16),
+                              const Icon(
+                                Icons.lock_rounded,
+                                color: AppColors.primary,
+                                size: 16,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 'Showing ${SubscriptionConstants.freePreviewLimit} of ${products.length} listings · Subscribe for full access',
@@ -434,11 +490,15 @@ class _FilterChip extends StatelessWidget {
 class _ProductListTile extends StatelessWidget {
   final ProductModel product;
   final bool isOwner;
+  final bool isFavourite;
+  final VoidCallback onFavouriteToggle;
   final VoidCallback onDelete;
 
   const _ProductListTile({
     required this.product,
     required this.isOwner,
+    required this.isFavourite,
+    required this.onFavouriteToggle,
     required this.onDelete,
   });
 
@@ -446,8 +506,7 @@ class _ProductListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dismissible(
       key: Key(product.productId),
-      direction:
-          isOwner ? DismissDirection.endToStart : DismissDirection.none,
+      direction: isOwner ? DismissDirection.endToStart : DismissDirection.none,
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
@@ -462,8 +521,9 @@ class _ProductListTile extends StatelessWidget {
         return false;
       },
       child: GestureDetector(
-        onTap: () => Navigator.of(context)
-            .pushNamed(AppRoutes.listingDetail, arguments: product.productId),
+        onTap: () => Navigator.of(
+          context,
+        ).pushNamed(AppRoutes.listingDetail, arguments: product.productId),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -496,18 +556,23 @@ class _ProductListTile extends StatelessWidget {
                           if (loadingProgress == null) return child;
                           return const Center(
                             child: SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2)),
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
                           );
                         },
                         errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.error_outline,
-                                color: AppColors.error),
+                            const Icon(
+                              Icons.error_outline,
+                              color: AppColors.error,
+                            ),
                       )
-                    : const Icon(Icons.image_outlined,
-                        color: AppColors.primary, size: 32),
+                    : const Icon(
+                        Icons.image_outlined,
+                        color: AppColors.primary,
+                        size: 32,
+                      ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -527,33 +592,88 @@ class _ProductListTile extends StatelessWidget {
                     const SizedBox(height: 4),
                     if (product.courseCode != null &&
                         product.courseCode!.isNotEmpty)
-                      Text(product.courseCode!,
-                          style: const TextStyle(
-                              color: AppColors.textSecondary, fontSize: 12)),
+                      Text(
+                        product.courseCode!,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
                     const SizedBox(height: 6),
-                    Row(
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color:
-                                AppColors.accent.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'JD ${product.price.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              color: AppColors.accent,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
+                        if (product.hasDiscount) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'JD ${product.discountedPrice!.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                color: AppColors.success,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
+                          Text(
+                            'JD ${product.price.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textHint,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.error,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${product.discountPercent}% OFF',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ] else
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.accent.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'JD ${product.price.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                color: AppColors.accent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.success.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
@@ -574,9 +694,24 @@ class _ProductListTile extends StatelessWidget {
               ),
               if (isOwner)
                 IconButton(
-                  icon: const Icon(Icons.delete_outline,
-                      color: AppColors.error),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.error,
+                  ),
                   onPressed: onDelete,
+                )
+              else
+                IconButton(
+                  tooltip: isFavourite
+                      ? 'Remove from favourites'
+                      : 'Add to favourites',
+                  icon: Icon(
+                    isFavourite
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    color: isFavourite ? AppColors.error : AppColors.textHint,
+                  ),
+                  onPressed: onFavouriteToggle,
                 ),
             ],
           ),

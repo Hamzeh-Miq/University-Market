@@ -19,5 +19,11 @@ class WatchlistNotifier extends Notifier<List<String>> {
 }
 
 /// Global provider for the Watchlist.
-final watchlistProvider =
-    NotifierProvider<WatchlistNotifier, List<String>>(WatchlistNotifier.new);
+final watchlistProvider = NotifierProvider<WatchlistNotifier, List<String>>(
+  WatchlistNotifier.new,
+);
+
+/// Count of unique favourite product IDs for notification badges.
+final favoriteCountProvider = Provider<int>((ref) {
+  return ref.watch(watchlistProvider).toSet().length;
+});

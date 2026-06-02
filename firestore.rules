@@ -6,21 +6,44 @@ service cloud.firestore {
     function isAuthenticated() {
       return request.auth != null;
     }
+
+    function isAdmin() {
+      return isAuthenticated()
+             && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
     function isVerifiedStudent() {
       return isAuthenticated() && request.auth.token.email_verified == true 
-             && request.auth.token.email.matches('.*\\.edu(\\.[a-zA-Z]{2,})?$');
+             && request.auth.token.email.matches('.*@students\\.asu\\.edu\\.jo$');
     }
     
     // USERS
     match /users/{userId} {
       allow read: if isAuthenticated();
-      // Owner can write anything to their own document
-      allow write: if request.auth.uid == userId;
-      // Any authenticated user can update only the rating/reviewCount fields
-      // (needed by the review submission transaction)
+      
+      // Owner can create their profile document
+      allow create: if isAuthenticated() && request.auth.uid == userId
+                    && request.resource.data.email == request.auth.token.email
+                    && request.resource.data.createdAt is timestamp
+                    && request.resource.data.subscriptionExpiresAt == null
+                    && request.resource.data.subscriptionActivatedAt == null
+                    && (request.resource.data.role == 'user' || (request.resource.data.role == 'admin' && request.auth.token.email == '202120554@students.asu.edu.jo'))
+                    && request.resource.data.isSubscribed == false
+                    && request.resource.data.rating == 0
+                    && request.resource.data.reviewCount == 0;
+
+      // Owner can update their own profile, but NOT sensitive fields
+      allow update: if isAuthenticated() && request.auth.uid == userId
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                         .hasAny(['role', 'isSubscribed', 'subscriptionExpiresAt', 'subscriptionActivatedAt', 'rating', 'reviewCount', 'email', 'createdAt']);
+
+      // Any authenticated user can update only the rating/reviewCount fields (needed for reviews)
       allow update: if isAuthenticated()
                     && request.resource.data.diff(resource.data).affectedKeys()
                          .hasOnly(['rating', 'reviewCount']);
+
+      // Admins can update/delete any user document (e.g. to manage roles or subscriptions)
+      allow update, delete: if isAdmin();
     }
     
     // PRODUCTS
@@ -33,8 +56,7 @@ service cloud.firestore {
       // The seller can update/delete their own listing
       allow update, delete: if isVerifiedStudent() && resource.data.sellerId == request.auth.uid;
       // Admins can update (approve/reject) or delete any listing
-      allow update, delete: if isAuthenticated()
-                            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow update, delete: if isAdmin();
     }
     
     // CHAT (Conversations & Messages)
@@ -67,8 +89,7 @@ service cloud.firestore {
     match /reports/{reportId} {
       allow create: if isVerifiedStudent()
                     && request.resource.data.reporterId == request.auth.uid;
-      allow read, update: if isAuthenticated()
-                          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow read, update: if isAdmin();
     }
   }
 }

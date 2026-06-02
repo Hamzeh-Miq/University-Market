@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
+import '../../constants/app_text_styles.dart';
 import '../../models/product_model.dart';
 
 /// A card widget used in product listing grids.
@@ -19,71 +20,118 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(AppColors.radius),
       child: Container(
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppColors.radius),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.45)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: AppColors.shadow,
+              blurRadius: 18,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image placeholder
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: product.images.isNotEmpty
-                  ? Image.network(
-                      product.images.first,
-                      height: 130,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholder(),
-                    )
-                  : _placeholder(),
+            AspectRatio(
+              aspectRatio: 1,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  product.images.isNotEmpty
+                      ? Image.network(
+                          product.images.first,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _placeholder(),
+                        )
+                      : _placeholder(),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Material(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        onTap: onWatchlistToggle,
+                        customBorder: const CircleBorder(),
+                        child: SizedBox(
+                          width: 34,
+                          height: 34,
+                          child: Icon(
+                            isWatched
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            size: 19,
+                            color: isWatched
+                                ? AppColors.favourite
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
 
             Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.fromLTRB(12, 11, 12, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     product.title,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: AppColors.textPrimary,
-                    ),
+                    style: AppTextStyles.cardTitle,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 7),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '\$${product.price.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                      const Icon(
+                        Icons.location_on_outlined,
+                        size: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 3),
+                      Expanded(
+                        child: Text(
+                          product.sellerUniversity ?? 'Campus marketplace',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.metadata,
                         ),
                       ),
-                      if (onWatchlistToggle != null)
-                        GestureDetector(
-                          onTap: onWatchlistToggle,
-                          child: Icon(
-                            isWatched ? Icons.bookmark : Icons.bookmark_border,
-                            size: 20,
-                            color: isWatched ? AppColors.primary : AppColors.textHint,
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'JD ${product.effectivePrice.toStringAsFixed(2)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.priceLarge,
+                        ),
+                      ),
+                      if (product.hasDiscount)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 1),
+                          child: Text(
+                            '${product.discountPercent}% off',
+                            style: AppTextStyles.metadata.copyWith(
+                              color: AppColors.favourite,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                     ],
@@ -99,10 +147,14 @@ class ProductCard extends StatelessWidget {
 
   Widget _placeholder() {
     return Container(
-      height: 130,
       width: double.infinity,
-      color: AppColors.primaryLight,
-      child: const Icon(Icons.image_outlined, color: AppColors.primary, size: 36),
+      height: double.infinity,
+      decoration: const BoxDecoration(gradient: AppColors.softBlueGradient),
+      child: const Icon(
+        Icons.inventory_2_outlined,
+        color: AppColors.primary,
+        size: 36,
+      ),
     );
   }
 }

@@ -10,8 +10,7 @@ class ReportService {
     try {
       await _db.collection('reports').add(report.toJson());
     } catch (e, st) {
-      Error.throwWithStackTrace(
-          Exception('Failed to submit report: $e'), st);
+      Error.throwWithStackTrace(Exception('Failed to submit report: $e'), st);
     }
   }
 
@@ -23,19 +22,21 @@ class ReportService {
         .where('status', isEqualTo: 'pending')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((s) =>
-            s.docs.map((d) => ReportModel.fromJson(d.data(), d.id)).toList());
+        .map(
+          (s) =>
+              s.docs.map((d) => ReportModel.fromJson(d.data(), d.id)).toList(),
+        );
   }
 
   /// Updates the status of a report ('reviewed' or 'dismissed').
   Future<void> updateReportStatus(String reportId, String status) async {
     try {
-      await _db.collection('reports').doc(reportId).update({
-        'status': status,
-      });
+      await _db.collection('reports').doc(reportId).update({'status': status});
     } catch (e, st) {
       Error.throwWithStackTrace(
-          Exception('Failed to update report status: $e'), st);
+        Exception('Failed to update report status: $e'),
+        st,
+      );
     }
   }
 }

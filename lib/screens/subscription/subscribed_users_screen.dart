@@ -3,13 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_routes.dart';
 import '../../models/user_model.dart';
-import '../../services/user_service.dart';
-
-/// Real-time stream of all currently subscribed users (admin only).
-final _subscribedUsersProvider =
-    StreamProvider.autoDispose<List<UserModel>>(
-  (ref) => UserService().watchSubscribedUsers(),
-);
+import '../../providers/auth_provider.dart';
 
 /// Displays all actively subscribed users for the admin.
 ///
@@ -19,7 +13,7 @@ class SubscribedUsersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final usersAsync = ref.watch(_subscribedUsersProvider);
+    final usersAsync = ref.watch(subscribedUsersProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -34,12 +28,13 @@ class SubscribedUsersScreen extends ConsumerWidget {
         actions: [
           usersAsync.maybeWhen(
             data: (users) => Padding(
-              padding:
-                  const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.only(right: 16),
               child: Center(
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.success,
                     borderRadius: BorderRadius.circular(20),
@@ -47,9 +42,10 @@ class SubscribedUsersScreen extends ConsumerWidget {
                   child: Text(
                     '${users.length} active',
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ),
@@ -66,21 +62,29 @@ class SubscribedUsersScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline,
-                    color: AppColors.error, size: 48),
+                const Icon(
+                  Icons.error_outline,
+                  color: AppColors.error,
+                  size: 48,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'Failed to load subscribers',
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: AppColors.textPrimary),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 8),
-                Text('$e',
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 13),
-                    textAlign: TextAlign.center),
+                Text(
+                  '$e',
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ],
             ),
           ),
@@ -97,8 +101,7 @@ class SubscribedUsersScreen extends ConsumerWidget {
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        color:
-                            AppColors.success.withValues(alpha: 0.1),
+                        color: AppColors.success.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -111,15 +114,18 @@ class SubscribedUsersScreen extends ConsumerWidget {
                     const Text(
                       'No active subscribers yet',
                       style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: AppColors.textPrimary),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     const Text(
                       'Subscribed users will appear here.',
                       style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 14),
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                      ),
                     ),
                   ],
                 ),
@@ -128,8 +134,7 @@ class SubscribedUsersScreen extends ConsumerWidget {
           }
 
           return ListView.separated(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             itemCount: users.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
@@ -166,14 +171,13 @@ class _SubscriberCard extends StatelessWidget {
     final Color expiryColor = daysLeft > 90
         ? AppColors.success
         : daysLeft > 30
-            ? AppColors.warning
-            : AppColors.error;
+        ? AppColors.warning
+        : AppColors.error;
 
     return GestureDetector(
-      onTap: () => Navigator.of(context).pushNamed(
-        AppRoutes.sellerProfile,
-        arguments: user.uid,
-      ),
+      onTap: () => Navigator.of(
+        context,
+      ).pushNamed(AppRoutes.sellerProfile, arguments: user.uid),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -194,14 +198,14 @@ class _SubscriberCard extends StatelessWidget {
               // Avatar
               CircleAvatar(
                 radius: 26,
-                backgroundColor:
-                    AppColors.primary.withValues(alpha: 0.15),
+                backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                 child: Text(
                   initials.isEmpty ? '?' : initials,
                   style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18),
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
               ),
               const SizedBox(width: 14),
@@ -212,9 +216,7 @@ class _SubscriberCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      user.fullName.isNotEmpty
-                          ? user.fullName
-                          : user.email,
+                      user.fullName.isNotEmpty ? user.fullName : user.email,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -227,7 +229,9 @@ class _SubscriberCard extends StatelessWidget {
                     Text(
                       user.email,
                       style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12),
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -242,12 +246,15 @@ class _SubscriberCard extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: expiryColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                          color: expiryColor.withValues(alpha: 0.4)),
+                        color: expiryColor.withValues(alpha: 0.4),
+                      ),
                     ),
                     child: Text(
                       '$daysLeft days left',
@@ -264,7 +271,9 @@ class _SubscriberCard extends StatelessWidget {
                         ? 'Exp ${expiry.day}/${expiry.month}/${expiry.year}'
                         : '—',
                     style: const TextStyle(
-                        color: AppColors.textHint, fontSize: 10),
+                      color: AppColors.textHint,
+                      fontSize: 10,
+                    ),
                   ),
                 ],
               ),

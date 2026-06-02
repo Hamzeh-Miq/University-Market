@@ -5,6 +5,9 @@ class SubscriptionConstants {
   /// Duration of the annual subscription in days.
   static const int subscriptionDays = 365;
 
+  /// Short user-facing label for the subscription duration.
+  static const String subscriptionDurationLabel = '1 year';
+
   /// Number of listings shown to non-subscribed users as a free preview.
   static const int freePreviewLimit = 6;
 

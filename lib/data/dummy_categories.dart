@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_colors.dart';
 import '../models/category_model.dart';
 
 const List<CategoryModel> dummyCategories = [
@@ -6,72 +7,72 @@ const List<CategoryModel> dummyCategories = [
     id: 'c1',
     name: 'Law',
     icon: Icons.gavel_rounded,
-    color: Color(0xFF5E35B1), // Deep Purple
+    color: AppColors.primaryDark,
   ),
   CategoryModel(
     id: 'c2',
     name: 'IT',
     icon: Icons.computer_rounded,
-    color: Color(0xFF1976D2), // Blue
+    color: AppColors.primary,
   ),
   CategoryModel(
     id: 'c3',
     name: 'Engineering',
     icon: Icons.architecture_rounded,
-    color: Color(0xFFF57C00), // Orange
+    color: AppColors.warning,
   ),
   CategoryModel(
     id: 'c4',
     name: 'Arts',
     icon: Icons.palette_rounded,
-    color: Color(0xFFD81B60), // Pink
+    color: AppColors.error,
   ),
   CategoryModel(
     id: 'c5',
     name: 'Business',
     icon: Icons.business_center_rounded,
-    color: Color(0xFF388E3C), // Green
+    color: AppColors.success,
   ),
   CategoryModel(
     id: 'c6',
     name: 'Nursing',
     icon: Icons.medical_services_rounded,
-    color: Color(0xFF00ACC1), // Cyan
+    color: AppColors.accent,
   ),
   CategoryModel(
     id: 'c7',
     name: 'Pharmaceutics',
     icon: Icons.medication_rounded,
-    color: Color(0xFF00897B), // Teal
+    color: AppColors.accent,
   ),
   CategoryModel(
     id: 'c8',
     name: 'Dentistry',
     icon: Icons.health_and_safety_rounded,
-    color: Color(0xFF0288D1), // Light Blue
+    color: AppColors.primaryLight,
   ),
   CategoryModel(
     id: 'c9',
     name: 'Sports',
     icon: Icons.sports_basketball_rounded,
-    color: Color(0xFFE64A19), // Deep Orange
+    color: AppColors.warning,
   ),
   CategoryModel(
     id: 'c10',
     name: 'Languages',
     icon: Icons.translate_rounded,
-    color: Color(0xFF3949AB), // Indigo
+    color: AppColors.primaryDark,
   ),
   CategoryModel(
     id: 'c11',
     name: 'Sharia',
     icon: Icons.menu_book_rounded,
-    color: Color(0xFF8D6E63), // Brown
+    color: AppColors.textSecondary,
   ),
   CategoryModel(
     id: 'c12',
     name: 'Home Stuff',
     icon: Icons.chair_rounded,
-    color: Color(0xFF546E7A), // Blue Grey
+    color: AppColors.textHint,
   ),
 ];

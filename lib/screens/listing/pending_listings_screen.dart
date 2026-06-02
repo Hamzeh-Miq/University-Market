@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_routes.dart';
+import '../../constants/product_status.dart';
 import '../../models/product_model.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
-import '../../services/product_service.dart';
 
 /// Admin-only screen: review pending listings, view publisher, approve or reject.
 class PendingListingsScreen extends ConsumerWidget {
@@ -26,9 +26,10 @@ class PendingListingsScreen extends ConsumerWidget {
             children: [
               Icon(Icons.lock_outline, size: 64, color: AppColors.error),
               SizedBox(height: 16),
-              Text('Admin access required.',
-                  style: TextStyle(
-                      fontSize: 16, color: AppColors.textSecondary)),
+              Text(
+                'Admin access required.',
+                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+              ),
             ],
           ),
         ),
@@ -44,7 +45,9 @@ class PendingListingsScreen extends ConsumerWidget {
         title: const Text(
           'Post Requests',
           style: TextStyle(
-              fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
         ),
       ),
       body: pendingAsync.when(
@@ -55,13 +58,17 @@ class PendingListingsScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline,
-                    size: 48, color: AppColors.error),
+                const Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: AppColors.error,
+                ),
                 const SizedBox(height: 12),
-                Text('Failed to load: $e',
-                    textAlign: TextAlign.center,
-                    style:
-                        const TextStyle(color: AppColors.textSecondary)),
+                const Text(
+                  'Failed to load pending listings.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
               ],
             ),
           ),
@@ -72,15 +79,19 @@ class PendingListingsScreen extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.check_circle_outline,
-                      size: 64,
-                      color: AppColors.success.withValues(alpha: 0.7)),
+                  Icon(
+                    Icons.check_circle_outline,
+                    size: 64,
+                    color: AppColors.success.withValues(alpha: 0.7),
+                  ),
                   const SizedBox(height: 16),
                   const Text(
                     'All caught up!\nNo posts pending review.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 15),
+                      color: AppColors.textSecondary,
+                      fontSize: 15,
+                    ),
                   ),
                 ],
               ),
@@ -120,23 +131,28 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
   Future<void> _updateStatus(String newStatus) async {
     setState(() => _isActing = true);
     try {
-      await ProductService()
+      await ref
+          .read(productServiceProvider)
           .updateProductStatus(widget.product.productId, newStatus);
       widget.onRefresh();
       if (mounted) {
-        final label =
-            newStatus == 'Available' ? 'Approved ✓' : 'Rejected ✗';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Listing "$label"'),
-          backgroundColor: newStatus == 'Available'
-              ? AppColors.success
-              : AppColors.error,
-        ));
+        final label = ProductStatus.isPublished(newStatus)
+            ? 'Listing approved.'
+            : 'Listing rejected.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(label),
+            backgroundColor: ProductStatus.isPublished(newStatus)
+                ? AppColors.success
+                : AppColors.error,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not update the listing status.')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isActing = false);
@@ -154,17 +170,16 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(title),
         content: Text(message),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-            style:
-                FilledButton.styleFrom(backgroundColor: confirmColor),
+            style: FilledButton.styleFrom(backgroundColor: confirmColor),
             onPressed: () => Navigator.pop(context, true),
             child: Text(confirmLabel),
           ),
@@ -184,7 +199,9 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: const Color(0xFFF59E0B).withValues(alpha: 0.4), width: 1),
+          color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -197,10 +214,7 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Seller row ─────────────────────────────────────────────
-          _SellerRow(
-            sellerId: product.sellerId,
-            sellerAsync: sellerAsync,
-          ),
+          _SellerRow(sellerId: product.sellerId, sellerAsync: sellerAsync),
 
           const Divider(height: 1, color: AppColors.divider),
 
@@ -224,11 +238,15 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                           product.images.first,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => const Icon(
-                              Icons.broken_image_outlined,
-                              color: AppColors.error),
+                            Icons.broken_image_outlined,
+                            color: AppColors.error,
+                          ),
                         )
-                      : const Icon(Icons.image_outlined,
-                          color: AppColors.primary, size: 32),
+                      : const Icon(
+                          Icons.image_outlined,
+                          color: AppColors.primary,
+                          size: 32,
+                        ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -250,18 +268,19 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                         spacing: 6,
                         children: [
                           _Badge(
-                              label: product.category,
-                              color: AppColors.primary),
+                            label: product.category,
+                            color: AppColors.primary,
+                          ),
                           _Badge(
-                            label:
-                                'JD ${product.price.toStringAsFixed(2)}',
+                            label: 'JD ${product.price.toStringAsFixed(2)}',
                             color: AppColors.accent,
                           ),
                           if (product.courseCode != null &&
                               product.courseCode!.isNotEmpty)
                             _Badge(
-                                label: product.courseCode!,
-                                color: AppColors.textSecondary),
+                              label: product.courseCode!,
+                              color: AppColors.textSecondary,
+                            ),
                         ],
                       ),
                     ],
@@ -270,11 +289,15 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                 // Preview button
                 IconButton(
                   tooltip: 'Preview post',
-                  icon: const Icon(Icons.open_in_new_rounded,
-                      color: AppColors.textSecondary, size: 20),
+                  icon: const Icon(
+                    Icons.open_in_new_rounded,
+                    color: AppColors.textSecondary,
+                    size: 20,
+                  ),
                   onPressed: () => Navigator.of(context).pushNamed(
-                      AppRoutes.listingDetail,
-                      arguments: product.productId),
+                    AppRoutes.listingDetail,
+                    arguments: product.productId,
+                  ),
                 ),
               ],
             ),
@@ -289,7 +312,9 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 13),
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                ),
               ),
             ),
 
@@ -313,21 +338,27 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                               'This listing will be hidden from the marketplace.',
                           confirmLabel: 'Reject',
                           confirmColor: AppColors.error,
-                          onConfirm: () => _updateStatus('Rejected'),
+                          onConfirm: () =>
+                              _updateStatus(ProductStatus.legacyRejected),
                         ),
-                        icon: const Icon(Icons.close_rounded,
-                            color: AppColors.error, size: 18),
-                        label: const Text('Reject',
-                            style: TextStyle(
-                                color: AppColors.error,
-                                fontWeight: FontWeight.bold)),
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: AppColors.error,
+                          size: 18,
+                        ),
+                        label: const Text(
+                          'Reject',
+                          style: TextStyle(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         style: TextButton.styleFrom(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 12)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
                       ),
                     ),
-                    const VerticalDivider(
-                        width: 1, color: AppColors.divider),
+                    const VerticalDivider(width: 1, color: AppColors.divider),
                     Expanded(
                       child: TextButton.icon(
                         onPressed: () => _confirmAction(
@@ -337,17 +368,24 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                               'This listing will become visible to all students.',
                           confirmLabel: 'Approve',
                           confirmColor: AppColors.success,
-                          onConfirm: () => _updateStatus('Available'),
+                          onConfirm: () =>
+                              _updateStatus(ProductStatus.published),
                         ),
-                        icon: const Icon(Icons.check_rounded,
-                            color: AppColors.success, size: 18),
-                        label: const Text('Approve',
-                            style: TextStyle(
-                                color: AppColors.success,
-                                fontWeight: FontWeight.bold)),
+                        icon: const Icon(
+                          Icons.check_rounded,
+                          color: AppColors.success,
+                          size: 18,
+                        ),
+                        label: const Text(
+                          'Approve',
+                          style: TextStyle(
+                            color: AppColors.success,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         style: TextButton.styleFrom(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 12)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
                       ),
                     ),
                   ],
@@ -369,31 +407,35 @@ class _SellerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => Navigator.of(context)
-          .pushNamed(AppRoutes.sellerProfile, arguments: sellerId),
-      borderRadius:
-          const BorderRadius.vertical(top: Radius.circular(16)),
+      onTap: () => Navigator.of(
+        context,
+      ).pushNamed(AppRoutes.sellerProfile, arguments: sellerId),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         child: sellerAsync.when(
           loading: () => const Row(
             children: [
               SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2)),
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
               SizedBox(width: 10),
-              Text('Loading seller...',
-                  style:
-                      TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+              Text(
+                'Loading seller...',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              ),
             ],
           ),
           error: (_, __) => const Row(
             children: [
               Icon(Icons.person_outline, size: 20, color: AppColors.error),
               SizedBox(width: 8),
-              Text('Unknown seller',
-                  style: TextStyle(color: AppColors.error, fontSize: 13)),
+              Text(
+                'Unknown seller',
+                style: TextStyle(color: AppColors.error, fontSize: 13),
+              ),
             ],
           ),
           data: (seller) {
@@ -415,14 +457,14 @@ class _SellerRow extends StatelessWidget {
                 // Mini avatar
                 CircleAvatar(
                   radius: 16,
-                  backgroundColor:
-                      AppColors.primary.withValues(alpha: 0.15),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                   child: Text(
                     initials.isEmpty ? '?' : initials,
                     style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -444,7 +486,9 @@ class _SellerRow extends StatelessWidget {
                             const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF59E0B),
                                 borderRadius: BorderRadius.circular(10),
@@ -452,9 +496,10 @@ class _SellerRow extends StatelessWidget {
                               child: const Text(
                                 'ADMIN',
                                 style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold),
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ],
@@ -463,7 +508,9 @@ class _SellerRow extends StatelessWidget {
                       Text(
                         seller?.email ?? '',
                         style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 11),
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -471,14 +518,20 @@ class _SellerRow extends StatelessWidget {
                 // Tap hint
                 const Row(
                   children: [
-                    Text('View profile',
-                        style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600)),
+                    Text(
+                      'View profile',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     SizedBox(width: 2),
-                    Icon(Icons.chevron_right_rounded,
-                        size: 16, color: AppColors.primary),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
                   ],
                 ),
               ],
@@ -509,7 +562,10 @@ class _Badge extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-            color: color, fontWeight: FontWeight.w600, fontSize: 11),
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+        ),
       ),
     );
   }

@@ -4,13 +4,13 @@ import '../constants/app_colors.dart';
 import '../models/report_model.dart';
 import '../providers/report_provider.dart';
 
-/// Shows a modal bottom sheet that lets the current user report a user or
-/// product listing.
+/// Shows a modal bottom sheet that lets the current user report a user,
+/// product listing, or review.
 ///
 /// [reporterId]  — UID of the user submitting the report.
-/// [targetType]  — 'user' or 'product'.
-/// [targetId]    — UID or productId being reported.
-/// [targetName]  — Display name / product title shown in the sheet title.
+/// [targetType]  — 'user', 'product', or 'review'.
+/// [targetId]    — UID, productId, or reviewId being reported.
+/// [targetName]  — Display label shown in the sheet title.
 Future<void> showReportDialog(
   BuildContext context,
   WidgetRef ref, {
@@ -63,15 +63,22 @@ class _ReportSheetState extends State<_ReportSheet> {
     super.dispose();
   }
 
-  List<String> get _reasons => widget.targetType == 'user'
-      ? kUserReportReasons
-      : kProductReportReasons;
+  List<String> get _reasons {
+    switch (widget.targetType) {
+      case 'user':
+        return kUserReportReasons;
+      case 'review':
+        return kReviewReportReasons;
+      default:
+        return kProductReportReasons;
+    }
+  }
 
   Future<void> _submit() async {
     if (_selectedReason == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a reason.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a reason.')));
       return;
     }
     setState(() => _submitting = true);
@@ -94,16 +101,18 @@ class _ReportSheetState extends State<_ReportSheet> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Report submitted. Thank you for keeping UniTrade safe.'),
+            content: Text(
+              'Report submitted. Thank you for keeping UniTrade safe.',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit report: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to submit report: $e')));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -144,7 +153,11 @@ class _ReportSheetState extends State<_ReportSheet> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Report ${widget.targetType == 'user' ? 'User' : 'Listing'}',
+                  switch (widget.targetType) {
+                    'user' => 'Report User',
+                    'review' => 'Report Review',
+                    _ => 'Report Listing',
+                  },
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -158,30 +171,41 @@ class _ReportSheetState extends State<_ReportSheet> {
           Text(
             widget.targetName,
             style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 13),
+              color: AppColors.textSecondary,
+              fontSize: 13,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 16),
 
           // Reason selection
-          const Text('Select a reason:',
-              style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                  fontSize: 14)),
+          const Text(
+            'Select a reason:',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+              fontSize: 14,
+            ),
+          ),
           const SizedBox(height: 8),
-          ..._reasons.map((reason) => RadioListTile<String>(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                value: reason,
-                groupValue: _selectedReason,
-                onChanged: (v) => setState(() => _selectedReason = v),
-                title: Text(reason,
-                    style: const TextStyle(
-                        fontSize: 14, color: AppColors.textPrimary)),
-                activeColor: AppColors.primary,
-              )),
+          ..._reasons.map(
+            (reason) => RadioListTile<String>(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              value: reason,
+              groupValue: _selectedReason,
+              onChanged: (v) => setState(() => _selectedReason = v),
+              title: Text(
+                reason,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              activeColor: AppColors.primary,
+            ),
+          ),
 
           const SizedBox(height: 8),
 
@@ -191,12 +215,16 @@ class _ReportSheetState extends State<_ReportSheet> {
             maxLines: 3,
             decoration: InputDecoration(
               hintText: 'Additional details (optional)',
-              hintStyle:
-                  const TextStyle(color: AppColors.textHint, fontSize: 13),
+              hintStyle: const TextStyle(
+                color: AppColors.textHint,
+                fontSize: 13,
+              ),
               filled: true,
               fillColor: AppColors.background,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 10,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: AppColors.border),
@@ -217,7 +245,8 @@ class _ReportSheetState extends State<_ReportSheet> {
                 backgroundColor: AppColors.error,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               onPressed: _submitting ? null : _submit,
               icon: _submitting
@@ -225,13 +254,17 @@ class _ReportSheetState extends State<_ReportSheet> {
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.send_rounded, size: 18),
               label: Text(
                 _submitting ? 'Submitting…' : 'Submit Report',
                 style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w600),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),

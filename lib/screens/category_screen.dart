@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../constants/app_colors.dart';
+import '../constants/app_routes.dart';
+import '../constants/app_text_styles.dart';
 import '../models/category_model.dart';
 
 class CategoryScreen extends StatelessWidget {
@@ -9,7 +12,7 @@ class CategoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -48,30 +51,26 @@ class CategoryScreen extends StatelessWidget {
                   Icon(
                     Icons.inventory_2_outlined,
                     size: 64,
-                    color: Colors.grey[400],
+                    color: AppColors.textHint,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'No items in ${category.name} yet.',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
+                    style: AppTextStyles.heading3.copyWith(
+                      color: AppColors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Be the first to post something!',
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                    ),
+                    style: AppTextStyles.bodyMedium,
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
                     onPressed: () {
-                      // Add item logic here
+                      Navigator.of(context).pushNamed(AppRoutes.addListing);
                     },
-                    icon: const Icon(Icons.add, color: Colors.white,),
+                    icon: const Icon(Icons.add, color: Colors.white),
                     label: const Text(
                       'Post an Item',
                       style: TextStyle(color: Colors.white),
@@ -81,7 +80,10 @@ class CategoryScreen extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ],

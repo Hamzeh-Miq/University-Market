@@ -19,23 +19,32 @@ const kProductReportReasons = [
   'Other',
 ];
 
-/// Represents a report submitted by a user about another user or a product.
+/// Reason options when reporting a profile review.
+const kReviewReportReasons = [
+  'False or misleading review',
+  'Harassment or abusive language',
+  'Spam',
+  'Off-topic content',
+  'Other',
+];
+
+/// Represents a report submitted by a user about another user, product, or review.
 class ReportModel {
   final String reportId;
 
   /// UID of the user who submitted the report.
   final String reporterId;
 
-  /// 'user' or 'product'.
+  /// 'user', 'product', or 'review'.
   final String targetType;
 
-  /// UID (for user reports) or productId (for product reports).
+  /// UID, productId, or reviewId depending on [targetType].
   final String targetId;
 
   /// Display name or product title — shown in admin UI.
   final String targetName;
 
-  /// Selected reason from [kUserReportReasons] or [kProductReportReasons].
+  /// Selected reason from the matching target-type reason list.
   final String reason;
 
   /// Optional additional details provided by the reporter.

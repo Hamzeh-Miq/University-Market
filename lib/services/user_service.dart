@@ -12,7 +12,9 @@ class UserService {
       await _db.collection('users').doc(user.uid).set(user.toJson());
     } catch (e, st) {
       Error.throwWithStackTrace(
-          Exception('Failed to create user profile: $e'), st);
+        Exception('Failed to create user profile: $e'),
+        st,
+      );
     }
   }
 
@@ -24,7 +26,9 @@ class UserService {
       return UserModel.fromJson(doc.data()!, doc.id);
     } catch (e, st) {
       Error.throwWithStackTrace(
-          Exception('Failed to fetch user profile: $e'), st);
+        Exception('Failed to fetch user profile: $e'),
+        st,
+      );
     }
   }
 
@@ -34,7 +38,9 @@ class UserService {
       await _db.collection('users').doc(uid).update(data);
     } catch (e, st) {
       Error.throwWithStackTrace(
-          Exception('Failed to update user profile: $e'), st);
+        Exception('Failed to update user profile: $e'),
+        st,
+      );
     }
   }
 
@@ -60,17 +66,20 @@ class UserService {
       return UserModel.fromJson(doc.data(), doc.id);
     } catch (e, st) {
       Error.throwWithStackTrace(
-          Exception('Failed to search user by email: $e'), st);
+        Exception('Failed to search user by email: $e'),
+        st,
+      );
     }
   }
 
   /// Activates an annual subscription for [uid].
-  /// Called by admin or payment screen. Sets isSubscribed, activatedAt, and expiresAt.
+  /// Called by admin tools or the payment screen.
   Future<void> activateSubscription(String uid) async {
     try {
       final now = DateTime.now();
       final expiry = now.add(
-          const Duration(days: SubscriptionConstants.subscriptionDays));
+        const Duration(days: SubscriptionConstants.subscriptionDays),
+      );
       await _db.collection('users').doc(uid).update({
         'isSubscribed': true,
         'subscriptionActivatedAt': Timestamp.fromDate(now),
@@ -78,7 +87,9 @@ class UserService {
       });
     } catch (e, st) {
       Error.throwWithStackTrace(
-          Exception('Failed to activate subscription: $e'), st);
+        Exception('Failed to activate subscription: $e'),
+        st,
+      );
     }
   }
 
@@ -92,7 +103,9 @@ class UserService {
       });
     } catch (e, st) {
       Error.throwWithStackTrace(
-          Exception('Failed to revoke subscription: $e'), st);
+        Exception('Failed to revoke subscription: $e'),
+        st,
+      );
     }
   }
 
@@ -105,7 +118,8 @@ class UserService {
         .where('isSubscribed', isEqualTo: true)
         .where('subscriptionExpiresAt', isGreaterThan: now)
         .snapshots()
-        .map((s) =>
-            s.docs.map((d) => UserModel.fromJson(d.data(), d.id)).toList());
+        .map(
+          (s) => s.docs.map((d) => UserModel.fromJson(d.data(), d.id)).toList(),
+        );
   }
 }

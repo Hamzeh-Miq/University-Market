@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../constants/app_colors.dart';
+import '../../constants/app_text_styles.dart';
 import '../../constants/subscription_constants.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/user_service.dart';
 
 /// Simulated payment screen for the UniTrade annual subscription.
 ///
@@ -71,29 +71,41 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
 
+    final user = ref.read(authStateProvider).value;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please sign in again before subscribing.'),
+        ),
+      );
+      return;
+    }
+
     // Step 1: show processing
     setState(() => _step = _PaymentStep.processing);
     _spinController.repeat();
 
-    // Simulate network delay
-    await Future<void>.delayed(const Duration(milliseconds: 2800));
-    _spinController.stop();
-
-    // Step 2: activate subscription in Firestore
-    final uid = ref.read(authStateProvider).value?.uid;
-    if (uid == null) {
-      if (mounted) setState(() => _step = _PaymentStep.form);
-      return;
-    }
     try {
-      await UserService().activateSubscription(uid);
-      if (mounted) setState(() => _step = _PaymentStep.success);
-    } catch (e) {
+      // Simulate network delay
+      await Future<void>.delayed(const Duration(milliseconds: 2800));
+      await ref.read(userServiceProvider).activateSubscription(user.uid);
+
+      if (mounted) {
+        setState(() => _step = _PaymentStep.success);
+      }
+    } catch (_) {
       if (mounted) {
         setState(() => _step = _PaymentStep.form);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Payment failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'We could not activate your subscription. Please try again.',
+            ),
+          ),
+        );
       }
+    } finally {
+      _spinController.stop();
     }
   }
 
@@ -108,31 +120,25 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
               backgroundColor: Colors.white,
               elevation: 0,
               iconTheme: const IconThemeData(color: AppColors.textPrimary),
-              title: const Text(
-                'Subscribe',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                    fontSize: 18),
-              ),
+              title: const Text('Subscribe', style: AppTextStyles.heading3),
             )
           : null,
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 400),
         child: switch (_step) {
           _PaymentStep.form => _FormView(
-              formKey: _formKey,
-              cardNumberController: _cardNumberController,
-              expiryController: _expiryController,
-              cvvController: _cvvController,
-              nameController: _nameController,
-              formatCardNumber: _formatCardNumber,
-              onPay: _pay,
-            ),
+            formKey: _formKey,
+            cardNumberController: _cardNumberController,
+            expiryController: _expiryController,
+            cvvController: _cvvController,
+            nameController: _nameController,
+            formatCardNumber: _formatCardNumber,
+            onPay: _pay,
+          ),
           _PaymentStep.processing => _ProcessingView(spin: _spinAnimation),
           _PaymentStep.success => _SuccessView(
-              onDone: () => Navigator.of(context).pop(true),
-            ),
+            onDone: () => Navigator.of(context).pop(true),
+          ),
         },
       ),
     );
@@ -201,24 +207,30 @@ class _FormView extends StatelessWidget {
                           color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.school_rounded,
-                            color: Colors.white, size: 22),
+                        child: const Icon(
+                          Icons.school_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                       ),
                       const SizedBox(width: 12),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'UniTrade Annual Pass',
                             style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16),
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                           Text(
-                            '1 year full access',
+                            '${SubscriptionConstants.subscriptionDurationLabel} full access',
                             style: TextStyle(
-                                color: Colors.white70, fontSize: 12),
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -230,14 +242,17 @@ class _FormView extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Annual Fee',
-                          style: TextStyle(color: Colors.white70, fontSize: 14)),
+                      const Text(
+                        'Annual Fee',
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                      ),
                       Text(
                         SubscriptionConstants.subscriptionPriceDisplay,
                         style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 22),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 22,
+                        ),
                       ),
                     ],
                   ),
@@ -245,12 +260,16 @@ class _FormView extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Duration',
-                          style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      const Text(
+                        'Duration',
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
                       Text(
-                        '${SubscriptionConstants.subscriptionDays} days',
+                        SubscriptionConstants.subscriptionDurationLabel,
                         style: const TextStyle(
-                            color: Colors.white70, fontSize: 13),
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
@@ -260,45 +279,39 @@ class _FormView extends StatelessWidget {
             const SizedBox(height: 28),
 
             // ── What you get ───────────────────────────────────────────
-            const Text(
-              "What you'll unlock",
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: AppColors.textPrimary),
-            ),
+            const Text("What you'll unlock", style: AppTextStyles.labelLarge),
             const SizedBox(height: 10),
-            ..._perks.map((p) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: AppColors.success.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.check_rounded,
-                            color: AppColors.success, size: 14),
+            ..._perks.map(
+              (p) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(width: 10),
-                      Text(p,
-                          style: const TextStyle(
-                              color: AppColors.textPrimary, fontSize: 14)),
-                    ],
-                  ),
-                )),
+                      child: const Icon(
+                        Icons.check_rounded,
+                        color: AppColors.success,
+                        size: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      p,
+                      style: AppTextStyles.bodyLarge.copyWith(fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
             const SizedBox(height: 28),
 
             // ── Card details section ───────────────────────────────────
-            const Text(
-              'Card Details',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: AppColors.textPrimary),
-            ),
+            const Text('Card Details', style: AppTextStyles.labelLarge),
             const SizedBox(height: 14),
 
             // Card number
@@ -310,11 +323,16 @@ class _FormView extends StatelessWidget {
                 LengthLimitingTextInputFormatter(16),
                 _CardNumberFormatter(),
               ],
-              decoration: _dec('Card Number', Icons.credit_card_rounded,
-                  hint: '0000 0000 0000 0000'),
+              decoration: _dec(
+                'Card Number',
+                Icons.credit_card_rounded,
+                hint: '0000 0000 0000 0000',
+              ),
               validator: (v) {
                 final digits = (v ?? '').replaceAll(' ', '');
-                if (digits.length != 16) return 'Enter a valid 16-digit card number.';
+                if (digits.length != 16) {
+                  return 'Enter a valid 16-digit card number.';
+                }
                 return null;
               },
             ),
@@ -332,8 +350,11 @@ class _FormView extends StatelessWidget {
                       LengthLimitingTextInputFormatter(4),
                       _ExpiryFormatter(),
                     ],
-                    decoration:
-                        _dec('Expiry', Icons.calendar_month_rounded, hint: 'MM/YY'),
+                    decoration: _dec(
+                      'Expiry',
+                      Icons.calendar_month_rounded,
+                      hint: 'MM/YY',
+                    ),
                     validator: (v) {
                       if ((v ?? '').length < 5) return 'Enter MM/YY.';
                       return null;
@@ -366,8 +387,10 @@ class _FormView extends StatelessWidget {
               controller: nameController,
               textCapitalization: TextCapitalization.words,
               decoration: _dec(
-                  'Cardholder Name', Icons.person_outline_rounded,
-                  hint: 'As on card'),
+                'Cardholder Name',
+                Icons.person_outline_rounded,
+                hint: 'As on card',
+              ),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Name is required.' : null,
             ),
@@ -382,13 +405,20 @@ class _FormView extends StatelessWidget {
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-                icon: const Icon(Icons.lock_rounded, color: Colors.white, size: 18),
+                icon: const Icon(
+                  Icons.lock_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
                 label: Text(
                   'Pay ${SubscriptionConstants.subscriptionPriceDisplay}',
                   style: const TextStyle(
-                      fontSize: 17, fontWeight: FontWeight.bold),
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -398,8 +428,11 @@ class _FormView extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.security_rounded,
-                    color: AppColors.textHint, size: 14),
+                Icon(
+                  Icons.security_rounded,
+                  color: AppColors.textHint,
+                  size: 14,
+                ),
                 const SizedBox(width: 6),
                 const Text(
                   'Secured · 256-bit encryption',
@@ -422,20 +455,25 @@ class _FormView extends StatelessWidget {
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none),
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
       enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.border)),
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
       focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      ),
       errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.error)),
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.error),
+      ),
       focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.error, width: 2)),
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.error, width: 2),
+      ),
     );
   }
 }
@@ -479,18 +517,17 @@ class _ProcessingView extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(Icons.credit_card_rounded,
-                  color: Colors.white, size: 36),
+              child: const Icon(
+                Icons.credit_card_rounded,
+                color: Colors.white,
+                size: 36,
+              ),
             ),
           ),
           const SizedBox(height: 32),
-          const Text(
-            'Processing Payment…',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+          Text(
+            'Processing Payment...',
+            style: AppTextStyles.heading2.copyWith(fontSize: 20),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -523,7 +560,9 @@ class _SuccessViewState extends State<_SuccessView>
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 700));
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
     _scale = CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
     _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeIn);
     _ctrl.forward();
@@ -554,23 +593,22 @@ class _SuccessViewState extends State<_SuccessView>
                     color: AppColors.success.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check_circle_rounded,
-                      color: AppColors.success, size: 64),
+                  child: const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.success,
+                    size: 64,
+                  ),
                 ),
               ),
               const SizedBox(height: 28),
               const Text(
-                'Payment Successful! 🎉',
+                'Payment Received',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+                style: AppTextStyles.heading2,
               ),
               const SizedBox(height: 12),
               Text(
-                'Your semester subscription is now active for ${SubscriptionConstants.subscriptionDays} days.\nEnjoy full access to UniTrade!',
+                'Your subscription is now active.\nYou have full access for ${SubscriptionConstants.subscriptionDurationLabel}.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: AppColors.textSecondary,
@@ -586,10 +624,22 @@ class _SuccessViewState extends State<_SuccessView>
                 runSpacing: 8,
                 alignment: WrapAlignment.center,
                 children: [
-                  _UnlockChip(label: 'Full Catalogue', icon: Icons.grid_view_rounded),
-                  _UnlockChip(label: 'Filters', icon: Icons.filter_list_rounded),
-                  _UnlockChip(label: 'Messaging', icon: Icons.chat_bubble_rounded),
-                  _UnlockChip(label: 'Post Listings', icon: Icons.add_a_photo_rounded),
+                  _UnlockChip(
+                    label: 'Full Catalogue',
+                    icon: Icons.grid_view_rounded,
+                  ),
+                  _UnlockChip(
+                    label: 'Filters',
+                    icon: Icons.filter_list_rounded,
+                  ),
+                  _UnlockChip(
+                    label: 'Messaging',
+                    icon: Icons.chat_bubble_rounded,
+                  ),
+                  _UnlockChip(
+                    label: 'Post Listings',
+                    icon: Icons.add_a_photo_rounded,
+                  ),
                 ],
               ),
               const SizedBox(height: 40),
@@ -602,12 +652,12 @@ class _SuccessViewState extends State<_SuccessView>
                     backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                   child: const Text(
-                    'Start Exploring',
-                    style: TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
+                    'Done',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -638,11 +688,14 @@ class _UnlockChip extends StatelessWidget {
         children: [
           Icon(icon, color: AppColors.success, size: 14),
           const SizedBox(width: 6),
-          Text(label,
-              style: const TextStyle(
-                  color: AppColors.success,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.success,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
         ],
       ),
     );
@@ -655,7 +708,9 @@ class _UnlockChip extends StatelessWidget {
 class _CardNumberFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final digits = newValue.text.replaceAll(' ', '');
     final buffer = StringBuffer();
     for (int i = 0; i < digits.length; i++) {
@@ -674,7 +729,9 @@ class _CardNumberFormatter extends TextInputFormatter {
 class _ExpiryFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final digits = newValue.text.replaceAll('/', '');
     if (digits.length <= 2) {
       return newValue.copyWith(

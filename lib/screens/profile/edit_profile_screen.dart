@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_text_styles.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/user_service.dart';
 
 /// Form to edit the current user's full name and phone number.
 class EditProfileScreen extends ConsumerStatefulWidget {
@@ -46,7 +45,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       return;
     }
     try {
-      final profile = await UserService().getUserProfile(uid);
+      final profile = await ref.read(userServiceProvider).getUserProfile(uid);
       if (mounted && profile != null) {
         _firstNameCtrl.text = profile.firstName;
         _middleNameCtrl.text = profile.middleName;
@@ -72,12 +71,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final lastName = _lastNameCtrl.text.trim();
 
     // Rebuild the legacy composite fields so nothing breaks on other screens
-    final fullName = [firstName, middleName, lastName]
-        .where((s) => s.isNotEmpty)
-        .join(' ');
+    final fullName = [
+      firstName,
+      middleName,
+      lastName,
+    ].where((s) => s.isNotEmpty).join(' ');
 
     try {
-      await UserService().updateUserProfile(uid, {
+      await ref.read(userServiceProvider).updateUserProfile(uid, {
         'firstName': firstName,
         'middleName': middleName,
         'lastName': lastName,
@@ -88,7 +89,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Profile updated successfully ✓'),
+            content: Text('Profile updated successfully.'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -97,7 +98,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving profile: $e')),
+          const SnackBar(
+            content: Text('Could not save your profile. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -121,7 +124,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               child: const Text(
                 'Save',
                 style: TextStyle(
-                    color: AppColors.primary, fontWeight: FontWeight.bold),
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           if (_saving)
@@ -148,8 +153,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     Center(
                       child: CircleAvatar(
                         radius: 44,
-                        backgroundColor:
-                            AppColors.primary.withValues(alpha: 0.15),
+                        backgroundColor: AppColors.primary.withValues(
+                          alpha: 0.15,
+                        ),
                         child: const Icon(
                           Icons.person_outline,
                           size: 44,
@@ -167,10 +173,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       label: 'First Name',
                       hint: 'e.g. Ahmad',
                       icon: Icons.badge_outlined,
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty)
-                              ? 'First name is required'
-                              : null,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'First name is required'
+                          : null,
                     ),
                     const SizedBox(height: 12),
                     _FieldBox(
@@ -185,10 +190,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       label: 'Last Name',
                       hint: 'e.g. Al-Hassan',
                       icon: Icons.badge_outlined,
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty)
-                              ? 'Last name is required'
-                              : null,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Last name is required'
+                          : null,
                     ),
                     const SizedBox(height: 24),
 
@@ -226,14 +230,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
                         child: _saving
                             ? const SizedBox(
                                 width: 22,
                                 height: 22,
                                 child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2),
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Text(
                                 'Save Changes',

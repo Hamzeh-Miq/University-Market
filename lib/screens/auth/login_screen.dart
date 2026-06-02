@@ -1,28 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/auth_service.dart';
 import '../../constants/app_routes.dart';
 import '../../constants/app_colors.dart';
+import '../../providers/auth_provider.dart';
 
 /// Controls which tab the LoginScreen opens in.
 enum LoginMode { login, register }
 
 /// Authentication screen handling both Login and Register flows.
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   final LoginMode initialMode;
 
-  const LoginScreen({
-    super.key,
-    this.initialMode = LoginMode.login,
-  });
+  const LoginScreen({super.key, this.initialMode = LoginMode.login});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
+class _LoginScreenState extends ConsumerState<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final AuthService _authService = AuthService();
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -67,20 +65,23 @@ class _LoginScreenState extends State<LoginScreen>
       _message = null;
     });
 
+    final authService = ref.read(authServiceProvider);
+
     try {
       if (_isLogin) {
-        final credential = await _authService.signIn(_email, _password);
+        final credential = await authService.signIn(_email, _password);
         if (mounted) {
           // Block access until email is verified
           if (credential.user?.emailVerified == true) {
             Navigator.of(context).pushReplacementNamed(AppRoutes.home);
           } else {
-            Navigator.of(context)
-                .pushReplacementNamed(AppRoutes.emailVerification);
+            Navigator.of(
+              context,
+            ).pushReplacementNamed(AppRoutes.emailVerification);
           }
         }
       } else {
-        await _authService.registerStudent(
+        await authService.registerStudent(
           _email,
           _password,
           firstName: _firstName,
@@ -111,7 +112,10 @@ class _LoginScreenState extends State<LoginScreen>
 
   String _mapFirebaseError(dynamic e) {
     final message = e.toString().toLowerCase();
-    if (message.contains('invalid-credential') || message.contains('invalid-email') || message.contains('wrong-password') || message.contains('user-not-found')) {
+    if (message.contains('invalid-credential') ||
+        message.contains('invalid-email') ||
+        message.contains('wrong-password') ||
+        message.contains('user-not-found')) {
       return 'Incorrect email or password. Please try again.';
     }
     if (message.contains('email-already-in-use')) {
@@ -189,8 +193,11 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                     child: Column(
                       children: [
-                        const Icon(Icons.school_rounded,
-                            size: 64, color: Colors.white),
+                        const Icon(
+                          Icons.school_rounded,
+                          size: 64,
+                          color: Colors.white,
+                        ),
                         const SizedBox(height: 12),
                         const Text(
                           'UniTrade',
@@ -243,7 +250,9 @@ class _LoginScreenState extends State<LoginScreen>
                               // First Name
                               TextFormField(
                                 decoration: _fieldDecoration(
-                                    'First Name', Icons.badge_outlined),
+                                  'First Name',
+                                  Icons.badge_outlined,
+                                ),
                                 textCapitalization: TextCapitalization.words,
                                 validator: (v) {
                                   if (v == null || v.trim().isEmpty) {
@@ -258,18 +267,20 @@ class _LoginScreenState extends State<LoginScreen>
                               // Middle Name (optional)
                               TextFormField(
                                 decoration: _fieldDecoration(
-                                    'Middle Name (optional)',
-                                    Icons.person_outline),
+                                  'Middle Name (optional)',
+                                  Icons.person_outline,
+                                ),
                                 textCapitalization: TextCapitalization.words,
-                                onSaved: (v) =>
-                                    _middleName = v?.trim() ?? '',
+                                onSaved: (v) => _middleName = v?.trim() ?? '',
                               ),
                               const SizedBox(height: 14),
 
                               // Last Name
                               TextFormField(
                                 decoration: _fieldDecoration(
-                                    'Last Name', Icons.badge_outlined),
+                                  'Last Name',
+                                  Icons.badge_outlined,
+                                ),
                                 textCapitalization: TextCapitalization.words,
                                 validator: (v) {
                                   if (v == null || v.trim().isEmpty) {
@@ -284,7 +295,9 @@ class _LoginScreenState extends State<LoginScreen>
                               // Phone Number
                               TextFormField(
                                 decoration: _fieldDecoration(
-                                    'Phone Number', Icons.phone_outlined),
+                                  'Phone Number',
+                                  Icons.phone_outlined,
+                                ),
                                 keyboardType: TextInputType.phone,
                                 validator: (v) {
                                   if (v == null || v.trim().isEmpty) {
@@ -302,21 +315,25 @@ class _LoginScreenState extends State<LoginScreen>
 
                             // Email
                             TextFormField(
-                              decoration: _fieldDecoration(
-                                      'University Email', Icons.email_outlined)
-                                  .copyWith(
-                                hintText: _isLogin
-                                    ? null
-                                    : 'student@asu.edu.jo',
-                              ),
+                              decoration:
+                                  _fieldDecoration(
+                                    'University Email',
+                                    Icons.email_outlined,
+                                  ).copyWith(
+                                    hintText: _isLogin
+                                        ? null
+                                        : 'student@students.asu.edu.jo',
+                                  ),
                               keyboardType: TextInputType.emailAddress,
                               validator: (v) {
                                 if (v == null || v.isEmpty) {
                                   return 'Please enter your email.';
                                 }
                                 if (!_isLogin &&
-                                    !_authService.isValidEduEmail(v)) {
-                                  return 'Only @asu.edu.jo email addresses are allowed.';
+                                    !ref
+                                        .read(authServiceProvider)
+                                        .isValidEduEmail(v)) {
+                                  return 'Only ${AuthService.studentEmailDomain} email addresses are allowed.';
                                 }
                                 return null;
                               },
@@ -326,20 +343,24 @@ class _LoginScreenState extends State<LoginScreen>
 
                             // Password
                             TextFormField(
-                              decoration: _fieldDecoration(
-                                      'Password', Icons.lock_outline)
-                                  .copyWith(
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
-                                    color: AppColors.textSecondary,
+                              decoration:
+                                  _fieldDecoration(
+                                    'Password',
+                                    Icons.lock_outline,
+                                  ).copyWith(
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscurePassword
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                      onPressed: () => setState(
+                                        () => _obscurePassword =
+                                            !_obscurePassword,
+                                      ),
+                                    ),
                                   ),
-                                  onPressed: () => setState(
-                                      () => _obscurePassword = !_obscurePassword),
-                                ),
-                              ),
                               obscureText: _obscurePassword,
                               validator: (v) {
                                 if (v == null || v.length < 6) {
@@ -382,23 +403,25 @@ class _LoginScreenState extends State<LoginScreen>
                             // Submit button
                             _isLoading
                                 ? const Center(
-                                    child: CircularProgressIndicator())
+                                    child: CircularProgressIndicator(),
+                                  )
                                 : FilledButton(
                                     onPressed: _submit,
                                     style: FilledButton.styleFrom(
                                       backgroundColor: AppColors.primary,
                                       padding: const EdgeInsets.symmetric(
-                                          vertical: 16),
+                                        vertical: 16,
+                                      ),
                                       shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(14),
+                                        borderRadius: BorderRadius.circular(14),
                                       ),
                                     ),
                                     child: Text(
                                       _isLogin ? 'Login' : 'Register',
                                       style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                           ],
@@ -416,8 +439,9 @@ class _LoginScreenState extends State<LoginScreen>
                           ? "Don't have an account? Register"
                           : 'Already have an account? Login',
                       style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600),
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],

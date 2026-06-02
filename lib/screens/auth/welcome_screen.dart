@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../constants/app_colors.dart';
+import '../../constants/app_text_styles.dart';
 import '../../constants/app_routes.dart';
+import '../../services/auth_service.dart';
 
 /// Welcome / splash screen shown to new users before login or registration.
 ///
@@ -55,8 +58,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   void _goRegister() =>
       Navigator.of(context).pushNamed(AppRoutes.login, arguments: 'register');
 
-  void _goLogin() =>
-      Navigator.of(context).pushNamed(AppRoutes.login);
+  void _goLogin() => Navigator.of(context).pushNamed(AppRoutes.login);
 
   @override
   Widget build(BuildContext context) {
@@ -165,9 +167,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       Text(
                         'The exclusive campus marketplace\nfor university students',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: AppTextStyles.bodyLarge.copyWith(
                           color: Colors.white.withValues(alpha: 0.65),
-                          fontSize: 15,
                           height: 1.5,
                         ),
                       ),
@@ -187,8 +188,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         icon: Icons.verified_user_rounded,
                         title: 'Students Only',
                         subtitle:
-                            'Exclusive to verified @students.edu.jo university emails.',
-                        accentColor: const Color(0xFF26C6DA),
+                            'Exclusive to verified ${AuthService.studentEmailDomain} inboxes.',
+                        accentColor: AppColors.accent,
                       ),
                       const SizedBox(height: 16),
                       _FeatureRow(
@@ -208,8 +209,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           onPressed: _goRegister,
                           style: FilledButton.styleFrom(
                             backgroundColor: _accent,
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 18),
+                            padding: const EdgeInsets.symmetric(vertical: 18),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(50),
                             ),
@@ -293,8 +293,7 @@ class _FeatureRow extends StatelessWidget {
           decoration: BoxDecoration(
             color: accentColor.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-                color: accentColor.withValues(alpha: 0.3)),
+            border: Border.all(color: accentColor.withValues(alpha: 0.3)),
           ),
           child: Icon(icon, color: accentColor, size: 22),
         ),

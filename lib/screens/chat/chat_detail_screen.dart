@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../constants/app_colors.dart';
@@ -58,7 +57,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     if (text.isEmpty) return;
     _controller.clear();
     try {
-      await ref.read(chatServiceProvider).sendMessage(
+      await ref
+          .read(chatServiceProvider)
+          .sendMessage(
             conversationId: widget.conversationId,
             senderId: currentUid,
             text: text,
@@ -68,7 +69,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send: $e')),
+          const SnackBar(
+            content: Text('Failed to send message. Please try again.'),
+          ),
         );
       }
     }
@@ -76,13 +79,13 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
   // ── Delete a single message ────────────────────────────────────────────────
 
-  void _onLongPressMessage(
-      BuildContext context, String messageId, bool isMe) {
+  void _onLongPressMessage(BuildContext context, String messageId, bool isMe) {
     if (!isMe) return; // Only allow deleting own messages
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (_) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -92,33 +95,36 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2)),
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
             const SizedBox(height: 8),
             ListTile(
-              leading:
-                  const Icon(Icons.delete_outline, color: AppColors.error),
-              title: const Text('Delete Message',
-                  style: TextStyle(color: AppColors.error)),
+              leading: const Icon(Icons.delete_outline, color: AppColors.error),
+              title: const Text(
+                'Delete Message',
+                style: TextStyle(color: AppColors.error),
+              ),
               onTap: () async {
                 Navigator.pop(context);
                 final messenger = ScaffoldMessenger.of(context);
                 try {
-                  await ref.read(chatServiceProvider).deleteMessage(
+                  await ref
+                      .read(chatServiceProvider)
+                      .deleteMessage(
                         conversationId: widget.conversationId,
                         messageId: messageId,
                       );
                 } catch (e) {
                   messenger.showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
+                    const SnackBar(content: Text('Failed to delete message.')),
                   );
                 }
               },
             ),
             ListTile(
-              leading:
-                  const Icon(Icons.close, color: AppColors.textSecondary),
+              leading: const Icon(Icons.close, color: AppColors.textSecondary),
               title: const Text('Cancel'),
               onTap: () => Navigator.pop(context),
             ),
@@ -137,13 +143,13 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete Chat'),
         content: const Text(
-            'This conversation will be removed from your inbox. '
-            'The other user will still see it, and it will reappear '
-            'if they send you a new message.'),
+          'This conversation will be removed from your inbox. '
+          'The other user will still see it, and it will reappear '
+          'if they send you a new message.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -167,9 +173,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       if (mounted) Navigator.of(context).pop(); // Go back to chat list
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting chat: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to delete chat.')));
       }
     }
   }
@@ -179,30 +185,34 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     final currentUser = ref.watch(authStateProvider).value;
     final isAdmin = ref.watch(isAdminProvider);
     final messagesAsync = ref.watch(messagesProvider(widget.conversationId));
+    final conversationAsync = ref.watch(
+      singleConversationProvider(widget.conversationId),
+    );
 
-    return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance
-          .collection('conversations')
-          .doc(widget.conversationId)
-          .get(),
-      builder: (context, snapshot) {
-        String otherUid = '';
-        String productTitle = '';
-
-        if (snapshot.hasData && snapshot.data!.exists) {
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-          final participants =
-              List<String>.from(data['participants'] ?? []);
-          otherUid = participants.firstWhere(
-            (id) => id != (currentUser?.uid ?? ''),
-            orElse: () => '',
+    return conversationAsync.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, __) => const Scaffold(
+        body: Center(child: Text('Failed to load conversation details.')),
+      ),
+      data: (conversation) {
+        if (conversation == null) {
+          return const Scaffold(
+            body: Center(child: Text('Conversation not found.')),
           );
-          productTitle = (data['productTitle'] as String?) ?? '';
         }
+
+        final participants = conversation.participants;
+        final otherUid = participants.firstWhere(
+          (id) => id != (currentUser?.uid ?? ''),
+          orElse: () => '',
+        );
+        final productTitle = conversation.productTitle;
 
         final userInfoAsync = otherUid.isNotEmpty
             ? ref.watch(otherUserInfoProvider((otherUid, isAdmin)))
             : const AsyncData<Map<String, String>>({'name': 'Chat'});
+        final canViewOtherProfiles = ref.watch(canViewOtherProfilesProvider);
 
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -212,11 +222,10 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             elevation: 0,
             // Tappable title → other user's profile
             title: GestureDetector(
-              onTap: otherUid.isNotEmpty
-                  ? () => Navigator.of(context).pushNamed(
-                        AppRoutes.sellerProfile,
-                        arguments: otherUid,
-                      )
+              onTap: otherUid.isNotEmpty && canViewOtherProfiles
+                  ? () => Navigator.of(
+                      context,
+                    ).pushNamed(AppRoutes.sellerProfile, arguments: otherUid)
                   : null,
               child: userInfoAsync.when(
                 data: (info) => Row(
@@ -225,28 +234,35 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(info['name'] ?? 'Chat',
-                              style: AppTextStyles.heading3),
+                          Text(
+                            info['name'] ?? 'Chat',
+                            style: AppTextStyles.heading3,
+                          ),
                           if (isAdmin && (info['email']?.isNotEmpty ?? false))
                             Text(
                               '${info['email']} · ${info['phone'] ?? ''}',
                               style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textSecondary),
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
                             )
                           else if (productTitle.isNotEmpty)
                             Text(
                               productTitle,
                               style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary),
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                         ],
                       ),
                     ),
-                    if (otherUid.isNotEmpty)
-                      const Icon(Icons.chevron_right,
-                          color: AppColors.textHint, size: 18),
+                    if (otherUid.isNotEmpty && canViewOtherProfiles)
+                      const Icon(
+                        Icons.chevron_right,
+                        color: AppColors.textHint,
+                        size: 18,
+                      ),
                   ],
                 ),
                 loading: () => const Text('Loading...'),
@@ -256,8 +272,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             // ── Actions: delete chat ───────────────────────────────
             actions: [
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert,
-                    color: AppColors.textPrimary),
+                icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
                 onSelected: (value) {
                   if (value == 'delete_chat') _deleteConversation();
                 },
@@ -268,8 +283,10 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                       children: [
                         Icon(Icons.delete_outline, color: AppColors.error),
                         SizedBox(width: 10),
-                        Text('Delete Chat',
-                            style: TextStyle(color: AppColors.error)),
+                        Text(
+                          'Delete Chat',
+                          style: TextStyle(color: AppColors.error),
+                        ),
                       ],
                     ),
                   ),
@@ -282,20 +299,23 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               // ── Messages list ─────────────────────────────────────
               Expanded(
                 child: messagesAsync.when(
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                  error: (e, _) => Center(
-                    child: Text('Error: $e',
-                        style: const TextStyle(color: AppColors.error)),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (_, __) => const Center(
+                    child: Text(
+                      'Failed to load messages.',
+                      style: TextStyle(color: AppColors.error),
+                    ),
                   ),
                   data: (messages) {
                     if (messages.isEmpty) {
                       return const Center(
                         child: Text(
-                          'No messages yet.\nSay hello! 👋',
+                          'No messages yet.\nSay hello!',
                           style: TextStyle(
-                              color: AppColors.textHint, fontSize: 14),
+                            color: AppColors.textHint,
+                            fontSize: 14,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       );
@@ -305,7 +325,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                     return ListView.builder(
                       controller: _scrollController,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       itemCount: messages.length,
                       itemBuilder: (context, index) {
                         final msg = messages[index];
@@ -314,8 +336,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                           text: msg.text,
                           isMe: isMe,
                           timestamp: msg.timestamp,
-                          onLongPress: () => _onLongPressMessage(
-                              context, msg.messageId, isMe),
+                          onLongPress: () =>
+                              _onLongPressMessage(context, msg.messageId, isMe),
                         );
                       },
                     );
@@ -361,8 +383,7 @@ class _MessageBubble extends StatelessWidget {
         alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 4),
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.72,
           ),
@@ -384,11 +405,13 @@ class _MessageBubble extends StatelessWidget {
             border: isMe
                 ? null
                 : const Border.fromBorderSide(
-                    BorderSide(color: AppColors.border)),
+                    BorderSide(color: AppColors.border),
+                  ),
           ),
           child: Column(
-            crossAxisAlignment:
-                isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            crossAxisAlignment: isMe
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
             children: [
               Text(
                 text,
@@ -429,7 +452,11 @@ class _InputBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.fromLTRB(
-          12, 8, 12, MediaQuery.of(context).padding.bottom + 8),
+        12,
+        8,
+        12,
+        MediaQuery.of(context).padding.bottom + 8,
+      ),
       decoration: const BoxDecoration(
         color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.border)),
@@ -440,13 +467,14 @@ class _InputBar extends StatelessWidget {
             child: TextField(
               controller: controller,
               decoration: InputDecoration(
-                hintText: 'Type a message…',
-                hintStyle:
-                    const TextStyle(color: AppColors.textHint),
+                hintText: 'Type a message...',
+                hintStyle: const TextStyle(color: AppColors.textHint),
                 filled: true,
                 fillColor: AppColors.background,
                 contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 10),
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,
@@ -464,9 +492,7 @@ class _InputBar extends StatelessWidget {
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: onSend != null
-                    ? AppColors.primary
-                    : AppColors.textHint,
+                color: onSend != null ? AppColors.primary : AppColors.textHint,
                 shape: BoxShape.circle,
               ),
               child: const Icon(

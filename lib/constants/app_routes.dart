@@ -9,13 +9,17 @@ class AppRoutes {
 
   // About
   static const String aboutUs = '/about';
+  static const String campusSafetyGuide = '/about/campus-safety';
 
   // Listings
   static const String listingDetail = '/listing/detail';
   static const String addListing = '/listing/add';
+  static const String editListing = '/listing/edit';
   static const String departmentListings = '/listing/department';
   static const String allListings = '/listing/all';
+  static const String offersListings = '/listing/offers';
   static const String pendingListings = '/listing/pending';
+  static const String favouriteListings = '/listing/favourites';
 
   // Category
   static const String category = '/category';

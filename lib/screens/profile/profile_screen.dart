@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_routes.dart';
+import '../../constants/product_status.dart';
 import '../../constants/subscription_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/report_provider.dart';
-import '../../services/user_service.dart';
-import '../../services/product_service.dart';
-import '../../services/report_service.dart';
+import '../../providers/review_provider.dart';
 import '../../models/user_model.dart';
 import '../../models/product_model.dart';
 import '../../models/report_model.dart';
@@ -39,8 +38,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return;
     }
     try {
-      final profile = await UserService().getUserProfile(uid);
-      if (mounted) setState(() { _userModel = profile; _loadingProfile = false; });
+      final profile = await ref.read(userServiceProvider).getUserProfile(uid);
+      if (mounted) {
+        setState(() {
+          _userModel = profile;
+          _loadingProfile = false;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _loadingProfile = false);
     }
@@ -54,8 +58,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Sign Out'),
         content: const Text('Are you sure you want to sign out?'),
         actions: [
@@ -78,13 +81,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       await ref.read(authServiceProvider).signOut();
       if (mounted) {
         // Clear the entire navigation stack — no back route remains
-        nav.pushNamedAndRemoveUntil(
-          AppRoutes.welcome,
-          (route) => false,
-        );
+        nav.pushNamedAndRemoveUntil(AppRoutes.welcome, (route) => false);
       }
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Sign out failed: $e')));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Sign out failed. Please try again.')),
+      );
     }
   }
 
@@ -102,11 +104,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final initials = _userModel?.fullName.isNotEmpty == true
         ? _userModel!.fullName
-            .trim()
-            .split(' ')
-            .map((p) => p.isNotEmpty ? p[0].toUpperCase() : '')
-            .take(2)
-            .join()
+              .trim()
+              .split(' ')
+              .map((p) => p.isNotEmpty ? p[0].toUpperCase() : '')
+              .take(2)
+              .join()
         : (firebaseUser?.email?[0].toUpperCase() ?? '?');
 
     return Scaffold(
@@ -177,43 +179,48 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ),
                           ),
                         ),
-                        if (isAdmin) ...
-                          [
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF59E0B),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.shield_rounded,
-                                      size: 11, color: Colors.white),
-                                  SizedBox(width: 3),
-                                  Text(
-                                    'ADMIN',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                        if (isAdmin) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
                             ),
-                          ],
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF59E0B),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.shield_rounded,
+                                  size: 11,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(width: 3),
+                                Text(
+                                  'ADMIN',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
                       firebaseUser?.email ?? '',
                       style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.8),
-                          fontSize: 13),
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
@@ -239,8 +246,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       const SizedBox(width: 12),
                       _StatCard(
                         label: 'Reviews',
-                        value:
-                            '${_userModel?.reviewCount ?? 0}',
+                        value: '${_userModel?.reviewCount ?? 0}',
                         color: AppColors.accent,
                       ),
                       const SizedBox(width: 12),
@@ -261,25 +267,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   _InfoCard(
                     items: [
                       _InfoRow(
-                          icon: Icons.person_outline,
-                          label: 'Full Name',
-                          value: _userModel?.fullName.isNotEmpty == true
-                              ? _userModel!.fullName
-                              : '—'),
+                        icon: Icons.person_outline,
+                        label: 'Full Name',
+                        value: _userModel?.fullName.isNotEmpty == true
+                            ? _userModel!.fullName
+                            : '—',
+                      ),
                       _InfoRow(
-                          icon: Icons.email_outlined,
-                          label: 'Email',
-                          value: firebaseUser?.email ?? '—'),
+                        icon: Icons.email_outlined,
+                        label: 'Email',
+                        value: firebaseUser?.email ?? '—',
+                      ),
                       _InfoRow(
-                          icon: Icons.phone_outlined,
-                          label: 'Phone',
-                          value: _userModel?.phoneNumber.isNotEmpty == true
-                              ? _userModel!.phoneNumber
-                              : '—'),
+                        icon: Icons.phone_outlined,
+                        label: 'Phone',
+                        value: _userModel?.phoneNumber.isNotEmpty == true
+                            ? _userModel!.phoneNumber
+                            : '—',
+                      ),
                       _InfoRow(
-                          icon: Icons.school_outlined,
-                          label: 'University',
-                          value: _userModel?.university ?? '—'),
+                        icon: Icons.school_outlined,
+                        label: 'University',
+                        value: _userModel?.university ?? '—',
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -338,8 +348,10 @@ class _MyListingsSection extends ConsumerWidget {
     return listingsAsync.when(
       loading: () =>
           const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      error: (e, _) => Text('Error: $e',
-          style: const TextStyle(color: AppColors.error)),
+      error: (e, _) => Text(
+        'Failed to load your listings.',
+        style: const TextStyle(color: AppColors.error),
+      ),
       data: (listings) {
         if (listings.isEmpty) {
           return Container(
@@ -348,19 +360,20 @@ class _MyListingsSection extends ConsumerWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: const Border.fromBorderSide(
-                  BorderSide(color: AppColors.border)),
+                BorderSide(color: AppColors.border),
+              ),
             ),
             child: const Center(
-              child: Text("You haven't posted any listings yet.",
-                  style: TextStyle(color: AppColors.textSecondary)),
+              child: Text(
+                "You haven't posted any listings yet.",
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
             ),
           );
         }
 
         return Column(
-          children: listings
-              .map((p) => _MyListingTile(product: p))
-              .toList(),
+          children: listings.map((p) => _MyListingTile(product: p)).toList(),
         );
       },
     );
@@ -374,8 +387,9 @@ class _MyListingTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.of(context)
-          .pushNamed(AppRoutes.listingDetail, arguments: product.productId),
+      onTap: () => Navigator.of(
+        context,
+      ).pushNamed(AppRoutes.listingDetail, arguments: product.productId),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
@@ -383,7 +397,8 @@ class _MyListingTile extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: const Border.fromBorderSide(
-              BorderSide(color: AppColors.border)),
+            BorderSide(color: AppColors.border),
+          ),
         ),
         child: Row(
           children: [
@@ -394,40 +409,53 @@ class _MyListingTile extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.image_outlined,
-                  color: AppColors.primary, size: 28),
+              child: const Icon(
+                Icons.image_outlined,
+                color: AppColors.primary,
+                size: 28,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(product.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary)),
+                  Text(
+                    product.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text('JD ${product.price.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                          color: AppColors.accent,
-                          fontWeight: FontWeight.bold)),
+                  Text(
+                    'JD ${product.price.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.1),
+                color: ProductStatus.color(
+                  product.status,
+                ).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text(product.status,
-                  style: const TextStyle(
-                      color: AppColors.success,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600)),
+              child: Text(
+                ProductStatus.label(product.status),
+                style: TextStyle(
+                  color: ProductStatus.color(product.status),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),
@@ -443,8 +471,11 @@ class _StatCard extends StatelessWidget {
   final String value;
   final Color color;
 
-  const _StatCard(
-      {required this.label, required this.value, required this.color});
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -455,19 +486,27 @@ class _StatCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: const Border.fromBorderSide(
-              BorderSide(color: AppColors.border)),
+            BorderSide(color: AppColors.border),
+          ),
         ),
         child: Column(
           children: [
-            Text(value,
-                style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: color)),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(label,
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 11)),
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+              ),
+            ),
           ],
         ),
       ),
@@ -489,34 +528,42 @@ class _InfoCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.border)),
+          BorderSide(color: AppColors.border),
+        ),
       ),
       child: Column(
         children: items
-            .map((row) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                      Icon(row.icon,
-                          color: AppColors.primary, size: 20),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(row.label,
-                              style: const TextStyle(
-                                  color: AppColors.textHint,
-                                  fontSize: 11)),
-                          Text(row.value,
-                              style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ))
+            .map(
+              (row) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(row.icon, color: AppColors.primary, size: 20),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          row.label,
+                          style: const TextStyle(
+                            color: AppColors.textHint,
+                            fontSize: 11,
+                          ),
+                        ),
+                        Text(
+                          row.value,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            )
             .toList(),
       ),
     );
@@ -527,8 +574,11 @@ class _InfoRow {
   final IconData icon;
   final String label;
   final String value;
-  const _InfoRow(
-      {required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 }
 
 // ── Admin Approvals Section ──────────────────────────────────────────────────
@@ -560,8 +610,11 @@ class _AdminApprovalsSection extends ConsumerWidget {
           ),
           child: Row(
             children: [
-              const Icon(Icons.admin_panel_settings_rounded,
-                  color: Color(0xFFF59E0B), size: 22),
+              const Icon(
+                Icons.admin_panel_settings_rounded,
+                color: Color(0xFFF59E0B),
+                size: 22,
+              ),
               const SizedBox(width: 10),
               const Expanded(
                 child: Text(
@@ -578,7 +631,9 @@ class _AdminApprovalsSection extends ConsumerWidget {
                     ? const SizedBox.shrink()
                     : Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF59E0B),
                           borderRadius: BorderRadius.circular(20),
@@ -613,18 +668,24 @@ class _AdminApprovalsSection extends ConsumerWidget {
             decoration: BoxDecoration(
               color: AppColors.error.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                  color: AppColors.error.withValues(alpha: 0.2)),
+              border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.error_outline,
-                    color: AppColors.error, size: 20),
+                const Icon(
+                  Icons.error_outline,
+                  color: AppColors.error,
+                  size: 20,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text('Failed to load: $e',
-                      style: const TextStyle(
-                          color: AppColors.error, fontSize: 13)),
+                  child: Text(
+                    'Failed to load: $e',
+                    style: const TextStyle(
+                      color: AppColors.error,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -641,14 +702,19 @@ class _AdminApprovalsSection extends ConsumerWidget {
                 child: const Center(
                   child: Column(
                     children: [
-                      Icon(Icons.check_circle_outline,
-                          size: 40, color: AppColors.success),
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 40,
+                        color: AppColors.success,
+                      ),
                       SizedBox(height: 10),
                       Text(
                         'All caught up!\nNo posts pending review.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 14),
+                          color: AppColors.textSecondary,
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
@@ -658,14 +724,15 @@ class _AdminApprovalsSection extends ConsumerWidget {
 
             return Column(
               children: listings
-                  .map((product) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _AdminPendingCard(
-                          product: product,
-                          onRefresh: () =>
-                              ref.refresh(pendingListingsProvider),
-                        ),
-                      ))
+                  .map(
+                    (product) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _AdminPendingCard(
+                        product: product,
+                        onRefresh: () => ref.refresh(pendingListingsProvider),
+                      ),
+                    ),
+                  )
                   .toList(),
             );
           },
@@ -682,12 +749,10 @@ class _AdminPendingCard extends ConsumerStatefulWidget {
   final ProductModel product;
   final VoidCallback onRefresh;
 
-  const _AdminPendingCard(
-      {required this.product, required this.onRefresh});
+  const _AdminPendingCard({required this.product, required this.onRefresh});
 
   @override
-  ConsumerState<_AdminPendingCard> createState() =>
-      _AdminPendingCardState();
+  ConsumerState<_AdminPendingCard> createState() => _AdminPendingCardState();
 }
 
 class _AdminPendingCardState extends ConsumerState<_AdminPendingCard> {
@@ -696,15 +761,19 @@ class _AdminPendingCardState extends ConsumerState<_AdminPendingCard> {
   Future<void> _updateStatus(String newStatus) async {
     setState(() => _isActing = true);
     try {
-      await ProductService()
+      await ref
+          .read(productServiceProvider)
           .updateProductStatus(widget.product.productId, newStatus);
       widget.onRefresh();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                newStatus == 'Available' ? 'Listing approved ✓' : 'Listing rejected ✗'),
-            backgroundColor: newStatus == 'Available'
+              ProductStatus.isPublished(newStatus)
+                  ? 'Listing approved.'
+                  : 'Listing rejected.',
+            ),
+            backgroundColor: ProductStatus.isPublished(newStatus)
                 ? AppColors.success
                 : AppColors.error,
           ),
@@ -712,8 +781,9 @@ class _AdminPendingCardState extends ConsumerState<_AdminPendingCard> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not update the listing status.')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isActing = false);
@@ -731,14 +801,14 @@ class _AdminPendingCardState extends ConsumerState<_AdminPendingCard> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(title),
         content: Text(message),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: confirmColor),
             onPressed: () => Navigator.pop(context, true),
@@ -760,7 +830,8 @@ class _AdminPendingCardState extends ConsumerState<_AdminPendingCard> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: const Color(0xFFF59E0B).withValues(alpha: 0.35)),
+          color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -774,34 +845,42 @@ class _AdminPendingCardState extends ConsumerState<_AdminPendingCard> {
         children: [
           // ── Seller info row ───────────────────────────────────────
           InkWell(
-            onTap: () => Navigator.of(context).pushNamed(
-                AppRoutes.sellerProfile,
-                arguments: product.sellerId),
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(16)),
+            onTap: () => Navigator.of(
+              context,
+            ).pushNamed(AppRoutes.sellerProfile, arguments: product.sellerId),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
               child: sellerAsync.when(
                 loading: () => const Row(
                   children: [
                     SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2)),
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
                     SizedBox(width: 10),
-                    Text('Loading seller…',
-                        style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12)),
+                    Text(
+                      'Loading seller…',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
                 error: (_, __) => const Row(
                   children: [
-                    Icon(Icons.person_outline,
-                        size: 18, color: AppColors.error),
+                    Icon(
+                      Icons.person_outline,
+                      size: 18,
+                      color: AppColors.error,
+                    ),
                     SizedBox(width: 8),
-                    Text('Unknown seller',
-                        style:
-                            TextStyle(color: AppColors.error, fontSize: 12)),
+                    Text(
+                      'Unknown seller',
+                      style: TextStyle(color: AppColors.error, fontSize: 12),
+                    ),
                   ],
                 ),
                 data: (seller) {
@@ -820,14 +899,16 @@ class _AdminPendingCardState extends ConsumerState<_AdminPendingCard> {
                     children: [
                       CircleAvatar(
                         radius: 15,
-                        backgroundColor:
-                            AppColors.primary.withValues(alpha: 0.12),
+                        backgroundColor: AppColors.primary.withValues(
+                          alpha: 0.12,
+                        ),
                         child: Text(
                           initials.isEmpty ? '?' : initials,
                           style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -835,20 +916,29 @@ class _AdminPendingCardState extends ConsumerState<_AdminPendingCard> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(name,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                    color: AppColors.textPrimary)),
-                            Text(seller?.email ?? '',
-                                style: const TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 11)),
+                            Text(
+                              name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              seller?.email ?? '',
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 11,
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right_rounded,
-                          size: 16, color: AppColors.primary),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
                     ],
                   );
                 },
@@ -874,13 +964,19 @@ class _AdminPendingCardState extends ConsumerState<_AdminPendingCard> {
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: product.images.isNotEmpty
-                      ? Image.network(product.images.first,
+                      ? Image.network(
+                          product.images.first,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => const Icon(
-                              Icons.broken_image_outlined,
-                              color: AppColors.error))
-                      : const Icon(Icons.image_outlined,
-                          color: AppColors.primary, size: 28),
+                            Icons.broken_image_outlined,
+                            color: AppColors.error,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.image_outlined,
+                          color: AppColors.primary,
+                          size: 28,
+                        ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -903,18 +999,19 @@ class _AdminPendingCardState extends ConsumerState<_AdminPendingCard> {
                         runSpacing: 4,
                         children: [
                           _AdminBadge(
-                              label: product.category,
-                              color: AppColors.primary),
+                            label: product.category,
+                            color: AppColors.primary,
+                          ),
                           _AdminBadge(
-                            label:
-                                'JD ${product.price.toStringAsFixed(2)}',
+                            label: 'JD ${product.price.toStringAsFixed(2)}',
                             color: AppColors.accent,
                           ),
                           if (product.courseCode != null &&
                               product.courseCode!.isNotEmpty)
                             _AdminBadge(
-                                label: product.courseCode!,
-                                color: AppColors.textSecondary),
+                              label: product.courseCode!,
+                              color: AppColors.textSecondary,
+                            ),
                         ],
                       ),
                     ],
@@ -923,11 +1020,15 @@ class _AdminPendingCardState extends ConsumerState<_AdminPendingCard> {
                 // Preview button
                 IconButton(
                   tooltip: 'Preview',
-                  icon: const Icon(Icons.open_in_new_rounded,
-                      color: AppColors.textSecondary, size: 18),
+                  icon: const Icon(
+                    Icons.open_in_new_rounded,
+                    color: AppColors.textSecondary,
+                    size: 18,
+                  ),
                   onPressed: () => Navigator.of(context).pushNamed(
-                      AppRoutes.listingDetail,
-                      arguments: product.productId),
+                    AppRoutes.listingDetail,
+                    arguments: product.productId,
+                  ),
                 ),
               ],
             ),
@@ -941,7 +1042,9 @@ class _AdminPendingCardState extends ConsumerState<_AdminPendingCard> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12),
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
               ),
             ),
 
@@ -965,22 +1068,28 @@ class _AdminPendingCardState extends ConsumerState<_AdminPendingCard> {
                               'This listing will be hidden from the marketplace.',
                           confirmLabel: 'Reject',
                           confirmColor: AppColors.error,
-                          onConfirm: () => _updateStatus('Rejected'),
+                          onConfirm: () =>
+                              _updateStatus(ProductStatus.legacyRejected),
                         ),
-                        icon: const Icon(Icons.close_rounded,
-                            color: AppColors.error, size: 17),
-                        label: const Text('Reject',
-                            style: TextStyle(
-                                color: AppColors.error,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13)),
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: AppColors.error,
+                          size: 17,
+                        ),
+                        label: const Text(
+                          'Reject',
+                          style: TextStyle(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
                         style: TextButton.styleFrom(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 10)),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
                       ),
                     ),
-                    const VerticalDivider(
-                        width: 1, color: AppColors.divider),
+                    const VerticalDivider(width: 1, color: AppColors.divider),
                     Expanded(
                       child: TextButton.icon(
                         onPressed: () => _confirmAction(
@@ -990,18 +1099,25 @@ class _AdminPendingCardState extends ConsumerState<_AdminPendingCard> {
                               'This listing will become visible to all students.',
                           confirmLabel: 'Approve',
                           confirmColor: AppColors.success,
-                          onConfirm: () => _updateStatus('Available'),
+                          onConfirm: () =>
+                              _updateStatus(ProductStatus.published),
                         ),
-                        icon: const Icon(Icons.check_rounded,
-                            color: AppColors.success, size: 17),
-                        label: const Text('Approve',
-                            style: TextStyle(
-                                color: AppColors.success,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13)),
+                        icon: const Icon(
+                          Icons.check_rounded,
+                          color: AppColors.success,
+                          size: 17,
+                        ),
+                        label: const Text(
+                          'Approve',
+                          style: TextStyle(
+                            color: AppColors.success,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
                         style: TextButton.styleFrom(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 10)),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
                       ),
                     ),
                   ],
@@ -1028,13 +1144,17 @@ class _AdminBadge extends StatelessWidget {
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(label,
-          style: TextStyle(
-              color: color, fontWeight: FontWeight.w600, fontSize: 11)),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+        ),
+      ),
     );
   }
 }
-
 
 // ── Subscription Status Card ───────────────────────────────────────────────────
 
@@ -1060,16 +1180,26 @@ class _SubscriptionStatusCard extends ConsumerWidget {
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+          border: Border.all(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
+          ),
         ),
         child: const Row(
           children: [
-            Icon(Icons.admin_panel_settings_rounded, color: Color(0xFFF59E0B), size: 22),
+            Icon(
+              Icons.admin_panel_settings_rounded,
+              color: Color(0xFFF59E0B),
+              size: 22,
+            ),
             SizedBox(width: 12),
             Expanded(
               child: Text(
                 'Admin — Full Access Granted',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF92400E), fontSize: 14),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF92400E),
+                  fontSize: 14,
+                ),
               ),
             ),
           ],
@@ -1079,7 +1209,8 @@ class _SubscriptionStatusCard extends ConsumerWidget {
 
     final isSubscribed = userModel?.isSubscribed ?? false;
     final expiry = userModel?.subscriptionExpiresAt;
-    final isActive = isSubscribed && expiry != null && expiry.isAfter(DateTime.now());
+    final isActive =
+        isSubscribed && expiry != null && expiry.isAfter(DateTime.now());
 
     if (isActive) {
       final daysLeft = expiry.difference(DateTime.now()).inDays;
@@ -1099,18 +1230,33 @@ class _SubscriptionStatusCard extends ConsumerWidget {
                 color: AppColors.success.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.verified_rounded, color: AppColors.success, size: 20),
+              child: const Icon(
+                Icons.verified_rounded,
+                color: AppColors.success,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Active Semester Subscription',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.success, fontSize: 14)),
+                  const Text(
+                    'Active Annual Subscription',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.success,
+                      fontSize: 14,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text('Expires $formatted · $daysLeft day${daysLeft == 1 ? '' : 's'} remaining',
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                  Text(
+                    'Expires $formatted · $daysLeft day${daysLeft == 1 ? '' : 's'} remaining',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1137,18 +1283,33 @@ class _SubscriptionStatusCard extends ConsumerWidget {
                   color: AppColors.warning.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.lock_rounded, color: AppColors.warning, size: 20),
+                child: const Icon(
+                  Icons.lock_rounded,
+                  color: AppColors.warning,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Free Preview',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.warning, fontSize: 14)),
+                    Text(
+                      'Free Preview',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.warning,
+                        fontSize: 14,
+                      ),
+                    ),
                     SizedBox(height: 2),
-                    Text('Subscribe to unlock the full marketplace',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                    Text(
+                      'Subscribe to unlock the full marketplace',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1158,16 +1319,20 @@ class _SubscriptionStatusCard extends ConsumerWidget {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: () => Navigator.of(context).pushNamed(AppRoutes.payment),
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(AppRoutes.payment),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               icon: const Icon(Icons.credit_card_rounded, size: 16),
-              label: const Text('Subscribe Now',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              label: const Text(
+                'Subscribe Now',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
             ),
           ),
         ],
@@ -1179,14 +1344,16 @@ class _SubscriptionStatusCard extends ConsumerWidget {
 // ── Admin Subscription Management Section ────────────────────────────────────
 
 /// Allows admins to search a user by email and activate or revoke a subscription.
-class _AdminSubscriptionSection extends StatefulWidget {
+class _AdminSubscriptionSection extends ConsumerStatefulWidget {
   const _AdminSubscriptionSection();
 
   @override
-  State<_AdminSubscriptionSection> createState() => _AdminSubscriptionSectionState();
+  ConsumerState<_AdminSubscriptionSection> createState() =>
+      _AdminSubscriptionSectionState();
 }
 
-class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
+class _AdminSubscriptionSectionState
+    extends ConsumerState<_AdminSubscriptionSection> {
   final _emailController = TextEditingController();
   UserModel? _foundUser;
   bool _searching = false;
@@ -1202,16 +1369,23 @@ class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
   Future<void> _search() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) return;
-    setState(() { _searching = true; _foundUser = null; _searchError = null; });
+    setState(() {
+      _searching = true;
+      _foundUser = null;
+      _searchError = null;
+    });
     try {
-      final user = await UserService().searchUserByEmail(email);
+      final user = await ref.read(userServiceProvider).searchUserByEmail(email);
       setState(() {
         _foundUser = user;
         _searching = false;
         if (user == null) _searchError = 'No user found with that email.';
       });
     } catch (e) {
-      setState(() { _searching = false; _searchError = 'Search failed: $e'; });
+      setState(() {
+        _searching = false;
+        _searchError = 'Search failed. Please try again.';
+      });
     }
   }
 
@@ -1219,19 +1393,30 @@ class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
     if (_foundUser == null) return;
     setState(() => _acting = true);
     try {
-      await UserService().activateSubscription(_foundUser!.uid);
-      final updated = await UserService().getUserProfile(_foundUser!.uid);
+      await ref.read(userServiceProvider).activateSubscription(_foundUser!.uid);
+      final updated = await ref
+          .read(userServiceProvider)
+          .getUserProfile(_foundUser!.uid);
       if (mounted) {
-        setState(() { _foundUser = updated; _acting = false; });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Subscription activated for ${_foundUser?.fullName ?? _foundUser?.email}'),
-          backgroundColor: AppColors.success,
-        ));
+        setState(() {
+          _foundUser = updated;
+          _acting = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Subscription activated for ${_foundUser?.fullName ?? _foundUser?.email}',
+            ),
+            backgroundColor: AppColors.success,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _acting = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not activate the subscription.')),
+        );
       }
     }
   }
@@ -1245,7 +1430,10 @@ class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
         title: const Text('Revoke Subscription'),
         content: Text('Revoke the subscription for ${_foundUser!.fullName}?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.pop(context, true),
@@ -1257,18 +1445,28 @@ class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
     if (confirmed != true) return;
     setState(() => _acting = true);
     try {
-      await UserService().revokeSubscription(_foundUser!.uid);
-      final updated = await UserService().getUserProfile(_foundUser!.uid);
+      await ref.read(userServiceProvider).revokeSubscription(_foundUser!.uid);
+      final updated = await ref
+          .read(userServiceProvider)
+          .getUserProfile(_foundUser!.uid);
       if (mounted) {
-        setState(() { _foundUser = updated; _acting = false; });
+        setState(() {
+          _foundUser = updated;
+          _acting = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Subscription revoked.'), backgroundColor: AppColors.error),
+          const SnackBar(
+            content: Text('Subscription revoked.'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _acting = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not revoke the subscription.')),
+        );
       }
     }
   }
@@ -1276,7 +1474,8 @@ class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
   @override
   Widget build(BuildContext context) {
     final found = _foundUser;
-    final hasActiveSub = (found?.isSubscribed ?? false) &&
+    final hasActiveSub =
+        (found?.isSubscribed ?? false) &&
         (found?.subscriptionExpiresAt?.isAfter(DateTime.now()) ?? false);
 
     return Column(
@@ -1295,27 +1494,37 @@ class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.card_membership_rounded,
-                  color: AppColors.success, size: 22),
+              const Icon(
+                Icons.card_membership_rounded,
+                color: AppColors.success,
+                size: 22,
+              ),
               const SizedBox(width: 10),
               const Expanded(
-                child: Text('Manage Subscriptions',
-                    style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1B5E20))),
+                child: Text(
+                  'Manage Subscriptions',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1B5E20),
+                  ),
+                ),
               ),
               TextButton.icon(
-                onPressed: () => Navigator.of(context)
-                    .pushNamed(AppRoutes.subscribedUsers),
-                icon: const Icon(Icons.people_alt_outlined,
-                    color: AppColors.success, size: 16),
+                onPressed: () =>
+                    Navigator.of(context).pushNamed(AppRoutes.subscribedUsers),
+                icon: const Icon(
+                  Icons.people_alt_outlined,
+                  color: AppColors.success,
+                  size: 16,
+                ),
                 label: const Text(
                   'View All',
                   style: TextStyle(
-                      color: AppColors.success,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12),
+                    color: AppColors.success,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
@@ -1331,16 +1540,31 @@ class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   hintText: 'Search user by email...',
-                  prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    color: AppColors.primary,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.border)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.border)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 16,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 2,
+                    ),
+                  ),
                 ),
                 onSubmitted: (_) => _search(),
               ),
@@ -1350,12 +1574,23 @@ class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
               onPressed: _searching ? null : _search,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: _searching
-                  ? const SizedBox(width: 18, height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Text('Find'),
             ),
           ],
@@ -1363,7 +1598,10 @@ class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
 
         if (_searchError != null) ...[
           const SizedBox(height: 10),
-          Text(_searchError!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+          Text(
+            _searchError!,
+            style: const TextStyle(color: AppColors.error, fontSize: 13),
+          ),
         ],
 
         if (found != null) ...[
@@ -1374,7 +1612,13 @@ class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.border),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1383,10 +1627,18 @@ class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
                   children: [
                     CircleAvatar(
                       radius: 22,
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                      backgroundColor: AppColors.primary.withValues(
+                        alpha: 0.15,
+                      ),
                       child: Text(
-                        found.fullName.isNotEmpty ? found.fullName[0].toUpperCase() : '?',
-                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 16),
+                        found.fullName.isNotEmpty
+                            ? found.fullName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1394,9 +1646,23 @@ class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(found.fullName.isNotEmpty ? found.fullName : found.email,
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 14)),
-                          Text(found.email, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                          Text(
+                            found.fullName.isNotEmpty
+                                ? found.fullName
+                                : found.email,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            found.email,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1404,24 +1670,39 @@ class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
                 ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
-                    color: hasActiveSub ? AppColors.success.withValues(alpha: 0.08) : AppColors.warning.withValues(alpha: 0.08),
+                    color: hasActiveSub
+                        ? AppColors.success.withValues(alpha: 0.08)
+                        : AppColors.warning.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     children: [
-                      Icon(hasActiveSub ? Icons.verified_rounded : Icons.lock_rounded,
-                          color: hasActiveSub ? AppColors.success : AppColors.warning, size: 16),
+                      Icon(
+                        hasActiveSub
+                            ? Icons.verified_rounded
+                            : Icons.lock_rounded,
+                        color: hasActiveSub
+                            ? AppColors.success
+                            : AppColors.warning,
+                        size: 16,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           hasActiveSub
-                              ? 'Subscribed · expires ${found.subscriptionExpiresAt!.day}/${found.subscriptionExpiresAt!.month}/${found.subscriptionExpiresAt!.year} · ${SubscriptionConstants.subscriptionDays}d plan'
+                              ? 'Subscribed · expires ${found.subscriptionExpiresAt!.day}/${found.subscriptionExpiresAt!.month}/${found.subscriptionExpiresAt!.year} · ${SubscriptionConstants.subscriptionDurationLabel} plan'
                               : 'No active subscription',
                           style: TextStyle(
-                            color: hasActiveSub ? AppColors.success : AppColors.warning,
-                            fontSize: 12, fontWeight: FontWeight.w600,
+                            color: hasActiveSub
+                                ? AppColors.success
+                                : AppColors.warning,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -1439,11 +1720,17 @@ class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
                           onPressed: _activate,
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.success,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                           icon: const Icon(Icons.add_card_rounded, size: 18),
-                          label: Text(hasActiveSub ? 'Renew (+${SubscriptionConstants.subscriptionDays}d)' : 'Activate',
-                              style: const TextStyle(fontWeight: FontWeight.bold)),
+                          label: Text(
+                            hasActiveSub
+                                ? 'Renew (+${SubscriptionConstants.subscriptionDurationLabel})'
+                                : 'Activate',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
                       if (hasActiveSub) ...[
@@ -1453,11 +1740,22 @@ class _AdminSubscriptionSectionState extends State<_AdminSubscriptionSection> {
                             onPressed: _revoke,
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: AppColors.error),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
-                            icon: const Icon(Icons.remove_circle_outline, color: AppColors.error, size: 18),
-                            label: const Text('Revoke',
-                                style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+                            icon: const Icon(
+                              Icons.remove_circle_outline,
+                              color: AppColors.error,
+                              size: 18,
+                            ),
+                            label: const Text(
+                              'Revoke',
+                              style: TextStyle(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -1495,18 +1793,15 @@ class _AdminReportsSection extends ConsumerWidget {
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: AppColors.error.withValues(alpha: 0.3),
-            ),
+            border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.flag_rounded,
-                  color: AppColors.error, size: 22),
+              const Icon(Icons.flag_rounded, color: AppColors.error, size: 22),
               const SizedBox(width: 10),
               const Expanded(
                 child: Text(
-                  'User Reports',
+                  'Pending Reports',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
@@ -1519,7 +1814,9 @@ class _AdminReportsSection extends ConsumerWidget {
                     ? const SizedBox.shrink()
                     : Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.error,
                           borderRadius: BorderRadius.circular(20),
@@ -1553,18 +1850,24 @@ class _AdminReportsSection extends ConsumerWidget {
             decoration: BoxDecoration(
               color: AppColors.error.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(14),
-              border:
-                  Border.all(color: AppColors.error.withValues(alpha: 0.2)),
+              border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.error_outline,
-                    color: AppColors.error, size: 20),
+                const Icon(
+                  Icons.error_outline,
+                  color: AppColors.error,
+                  size: 20,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text('Failed to load reports: $e',
-                      style: const TextStyle(
-                          color: AppColors.error, fontSize: 13)),
+                  child: Text(
+                    'Failed to load reports: $e',
+                    style: const TextStyle(
+                      color: AppColors.error,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1581,14 +1884,19 @@ class _AdminReportsSection extends ConsumerWidget {
                 child: const Center(
                   child: Column(
                     children: [
-                      Icon(Icons.check_circle_outline,
-                          size: 40, color: AppColors.success),
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 40,
+                        color: AppColors.success,
+                      ),
                       SizedBox(height: 10),
                       Text(
                         'No pending reports.\nAll clear!',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 14),
+                          color: AppColors.textSecondary,
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
@@ -1598,14 +1906,15 @@ class _AdminReportsSection extends ConsumerWidget {
 
             return Column(
               children: reports
-                  .map((report) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _AdminReportCard(
-                          report: report,
-                          onRefresh: () =>
-                              ref.refresh(pendingReportsProvider),
-                        ),
-                      ))
+                  .map(
+                    (report) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _AdminReportCard(
+                        report: report,
+                        onRefresh: () => ref.refresh(pendingReportsProvider),
+                      ),
+                    ),
+                  )
                   .toList(),
             );
           },
@@ -1621,12 +1930,10 @@ class _AdminReportCard extends ConsumerStatefulWidget {
   final ReportModel report;
   final VoidCallback onRefresh;
 
-  const _AdminReportCard(
-      {required this.report, required this.onRefresh});
+  const _AdminReportCard({required this.report, required this.onRefresh});
 
   @override
-  ConsumerState<_AdminReportCard> createState() =>
-      _AdminReportCardState();
+  ConsumerState<_AdminReportCard> createState() => _AdminReportCardState();
 }
 
 class _AdminReportCardState extends ConsumerState<_AdminReportCard> {
@@ -1635,15 +1942,18 @@ class _AdminReportCardState extends ConsumerState<_AdminReportCard> {
   Future<void> _updateStatus(String newStatus) async {
     setState(() => _isActing = true);
     try {
-      await ReportService()
+      await ref
+          .read(reportServiceProvider)
           .updateReportStatus(widget.report.reportId, newStatus);
       widget.onRefresh();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(newStatus == 'reviewed'
-                ? 'Report marked as reviewed ✓'
-                : 'Report dismissed'),
+            content: Text(
+              newStatus == 'reviewed'
+                  ? 'Report marked as reviewed ✓'
+                  : 'Report dismissed',
+            ),
             backgroundColor: newStatus == 'reviewed'
                 ? AppColors.success
                 : AppColors.textSecondary,
@@ -1652,11 +1962,46 @@ class _AdminReportCardState extends ConsumerState<_AdminReportCard> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not update the report status.')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isActing = false);
+    }
+  }
+
+  Future<void> _deleteReportedReview() async {
+    setState(() => _isActing = true);
+    try {
+      await ref
+          .read(reviewServiceProvider)
+          .deleteReview(reviewId: widget.report.targetId);
+      await ref
+          .read(reportServiceProvider)
+          .updateReportStatus(widget.report.reportId, 'reviewed');
+      widget.onRefresh();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Review deleted and report marked reviewed.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not delete the reported review.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isActing = false);
+      }
     }
   }
 
@@ -1664,13 +2009,29 @@ class _AdminReportCardState extends ConsumerState<_AdminReportCard> {
   Widget build(BuildContext context) {
     final report = widget.report;
     final isUser = report.targetType == 'user';
+    final isReview = report.targetType == 'review';
+    final chipColor = isUser
+        ? AppColors.error
+        : isReview
+        ? AppColors.primary
+        : AppColors.warning;
+    final chipLabel = isUser
+        ? 'USER'
+        : isReview
+        ? 'REVIEW'
+        : 'PRODUCT';
+    final reporterAsync = report.reporterId.isEmpty
+        ? null
+        : ref.watch(sellerProfileProvider(report.reporterId));
+    final targetUserAsync = isUser && report.targetId.isNotEmpty
+        ? ref.watch(sellerProfileProvider(report.targetId))
+        : null;
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: AppColors.error.withValues(alpha: 0.25)),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -1689,21 +2050,18 @@ class _AdminReportCardState extends ConsumerState<_AdminReportCard> {
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
-                    color: (isUser ? AppColors.error : AppColors.warning)
-                        .withValues(alpha: 0.12),
+                    color: chipColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color:
-                          (isUser ? AppColors.error : AppColors.warning)
-                              .withValues(alpha: 0.4),
-                    ),
+                    border: Border.all(color: chipColor.withValues(alpha: 0.4)),
                   ),
                   child: Text(
-                    isUser ? 'USER' : 'PRODUCT',
+                    chipLabel,
                     style: TextStyle(
-                      color: isUser ? AppColors.error : AppColors.warning,
+                      color: chipColor,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
@@ -1731,8 +2089,11 @@ class _AdminReportCardState extends ConsumerState<_AdminReportCard> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.report_outlined,
-                    size: 16, color: AppColors.error),
+                const Icon(
+                  Icons.report_outlined,
+                  size: 16,
+                  color: AppColors.error,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -1748,33 +2109,40 @@ class _AdminReportCardState extends ConsumerState<_AdminReportCard> {
             ),
 
             // ── Description ─────────────────────────────────────────
-            if (report.description.isNotEmpty) ...[ 
+            if (report.description.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(
                 report.description,
                 style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                    height: 1.4),
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
               ),
             ],
 
-            const SizedBox(height: 6),
+            const SizedBox(height: 10),
+
+            _ReportPartyDetails(
+              report: report,
+              reporterAsync: reporterAsync,
+              targetUserAsync: targetUserAsync,
+            ),
+
+            const SizedBox(height: 8),
 
             // ── Reporter ref + date ──────────────────────────────────
             Text(
               'Reporter: ${report.reporterId.length > 12 ? '${report.reporterId.substring(0, 12)}…' : report.reporterId}'
               ' · ${report.createdAt.day}/${report.createdAt.month}/${report.createdAt.year}',
-              style: const TextStyle(
-                  color: AppColors.textHint, fontSize: 11),
+              style: const TextStyle(color: AppColors.textHint, fontSize: 11),
             ),
 
             const SizedBox(height: 12),
 
             // ── Action buttons ───────────────────────────────────────
             if (_isActing)
-              const Center(
-                  child: CircularProgressIndicator(strokeWidth: 2))
+              const Center(child: CircularProgressIndicator(strokeWidth: 2))
             else
               Row(
                 children: [
@@ -1783,10 +2151,10 @@ class _AdminReportCardState extends ConsumerState<_AdminReportCard> {
                       onPressed: () => _updateStatus('dismissed'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.textSecondary,
-                        side: const BorderSide(
-                            color: AppColors.border),
+                        side: const BorderSide(color: AppColors.border),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       child: const Text('Dismiss'),
                     ),
@@ -1794,13 +2162,18 @@ class _AdminReportCardState extends ConsumerState<_AdminReportCard> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: FilledButton(
-                      onPressed: () => _updateStatus('reviewed'),
+                      onPressed: isReview
+                          ? _deleteReportedReview
+                          : () => _updateStatus('reviewed'),
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: isReview
+                            ? AppColors.error
+                            : AppColors.primary,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                      child: const Text('Mark Reviewed'),
+                      child: Text(isReview ? 'Delete Review' : 'Mark Reviewed'),
                     ),
                   ),
                 ],
@@ -1808,6 +2181,123 @@ class _AdminReportCardState extends ConsumerState<_AdminReportCard> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ReportPartyDetails extends StatelessWidget {
+  final ReportModel report;
+  final AsyncValue<UserModel?>? reporterAsync;
+  final AsyncValue<UserModel?>? targetUserAsync;
+
+  const _ReportPartyDetails({
+    required this.report,
+    required this.reporterAsync,
+    required this.targetUserAsync,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final targetLabel = switch (report.targetType) {
+      'user' => 'Reported user',
+      'review' => 'Reported review',
+      _ => 'Reported product',
+    };
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.7)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _ReportPartyRow(
+            icon: Icons.person_search_outlined,
+            label: 'Reported by',
+            value: _userValue(reporterAsync, report.reporterId),
+          ),
+          const SizedBox(height: 8),
+          _ReportPartyRow(
+            icon: Icons.flag_outlined,
+            label: targetLabel,
+            value: report.targetType == 'user'
+                ? _userValue(targetUserAsync, report.targetId)
+                : _targetValue(report),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _targetValue(ReportModel report) {
+    final name = report.targetName.isEmpty
+        ? 'Unknown target'
+        : report.targetName;
+    if (report.targetId.isEmpty) return name;
+    return '$name (${report.targetId})';
+  }
+
+  String _userValue(AsyncValue<UserModel?>? userAsync, String fallbackId) {
+    final fallback = fallbackId.isEmpty ? 'Unknown user' : fallbackId;
+    final user = userAsync?.valueOrNull;
+    if (user == null) return fallback;
+
+    final name = user.fullName.isEmpty ? 'Unknown user' : user.fullName;
+    if (user.email.isEmpty) return '$name ($fallback)';
+    return '$name - ${user.email} ($fallback)';
+  }
+}
+
+class _ReportPartyRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _ReportPartyRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: AppColors.textSecondary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.textHint,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  height: 1.25,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -16,12 +16,13 @@ class StorageService {
         data = await imageFile.readAsBytes();
       } else {
         // 1. Compress image to Uint8List on mobile
-        final Uint8List? compressedData = await FlutterImageCompress.compressWithFile(
-          imageFile.path,
-          minWidth: 800,
-          minHeight: 800,
-          quality: 75,
-        );
+        final Uint8List? compressedData =
+            await FlutterImageCompress.compressWithFile(
+              imageFile.path,
+              minWidth: 800,
+              minHeight: 800,
+              quality: 75,
+            );
 
         if (compressedData == null) {
           throw Exception('Failed to compress image.');

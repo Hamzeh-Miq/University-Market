@@ -15,13 +15,13 @@ class UserModel {
   final DateTime createdAt;
   final String role;
 
-  /// Whether the user has an active semester subscription.
+  /// Whether the user has an active annual subscription.
   final bool isSubscribed;
 
   /// The date/time when the current subscription expires.
   final DateTime? subscriptionExpiresAt;
 
-  /// The date/time when the current subscription was activated by admin.
+  /// The date/time when the current subscription was activated.
   final DateTime? subscriptionActivatedAt;
 
   UserModel({
@@ -73,7 +73,9 @@ class UserModel {
       final parts = ((json['fullName'] as String?) ?? '').trim().split(' ');
       firstName = parts.isNotEmpty ? parts.first : '';
       lastName = parts.length > 1 ? parts.last : '';
-      middleName = parts.length > 2 ? parts.sublist(1, parts.length - 1).join(' ') : '';
+      middleName = parts.length > 2
+          ? parts.sublist(1, parts.length - 1).join(' ')
+          : '';
     }
 
     return UserModel(
@@ -90,10 +92,10 @@ class UserModel {
       createdAt: (json['createdAt'] as Timestamp).toDate(),
       role: json['role'] ?? 'user',
       isSubscribed: json['isSubscribed'] as bool? ?? false,
-      subscriptionExpiresAt:
-          (json['subscriptionExpiresAt'] as Timestamp?)?.toDate(),
-      subscriptionActivatedAt:
-          (json['subscriptionActivatedAt'] as Timestamp?)?.toDate(),
+      subscriptionExpiresAt: (json['subscriptionExpiresAt'] as Timestamp?)
+          ?.toDate(),
+      subscriptionActivatedAt: (json['subscriptionActivatedAt'] as Timestamp?)
+          ?.toDate(),
     );
   }
 

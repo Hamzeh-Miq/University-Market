@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../constants/app_colors.dart';
 import '../../constants/app_routes.dart';
+import '../../constants/product_status.dart';
 import '../../models/product_model.dart';
 import '../../models/review_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/review_provider.dart';
-import '../../services/review_service.dart';
 import '../../widgets/report_dialog.dart';
+import '../../widgets/subscription_gate.dart';
 
-/// Public profile view — shows any user's info, listings, and reviews.
-/// Also allows the logged-in user to leave a review (once per person).
+/// Subscriber-only profile view for other users.
+/// Also allows the logged-in user to manage their own review.
 class SellerProfileScreen extends ConsumerWidget {
   final String uid;
 
@@ -19,28 +21,43 @@ class SellerProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.watch(authStateProvider).value;
+    final currentUserModel = ref.watch(currentUserModelProvider).value;
+    final canViewOtherProfiles = ref.watch(canViewOtherProfilesProvider);
+    final isOwnProfile = currentUser?.uid == uid;
+    final canAccessProfile = isOwnProfile || canViewOtherProfiles;
+
+    if (!canAccessProfile) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: SubscriptionGate(
+          featureLabel: 'member profiles',
+          fullPage: true,
+          child: SizedBox.shrink(),
+        ),
+      );
+    }
+
     final sellerAsync = ref.watch(sellerProfileProvider(uid));
     final listingsAsync = ref.watch(myListingsProvider(uid));
     final reviewsAsync = ref.watch(reviewsProvider(uid));
-    final currentUser = ref.watch(authStateProvider).value;
-    final isOwnProfile = currentUser?.uid == uid;
 
     return sellerAsync.when(
       loading: () => const Scaffold(
         backgroundColor: AppColors.background,
         body: Center(child: CircularProgressIndicator()),
       ),
-      error: (e, _) => Scaffold(
+      error: (error, _) => Scaffold(
         appBar: AppBar(title: const Text('Profile')),
-        body: Center(child: Text('Error loading profile: $e')),
+        body: const Center(child: Text('Failed to load profile.')),
       ),
       data: (seller) {
         final name = seller?.fullName.isNotEmpty == true
             ? seller!.fullName
             : 'Unknown User';
-        final email = seller?.email ?? '—';
-        final phone = seller?.phoneNumber ?? '—';
-        final university = seller?.university ?? '—';
+        final email = seller?.email ?? '-';
+        final phone = seller?.phoneNumber ?? '-';
+        final university = seller?.university ?? '-';
         final isAdmin = seller?.role == 'admin';
         final rating = seller?.rating ?? 0.0;
         final reviewCount = seller?.reviewCount ?? 0;
@@ -48,16 +65,21 @@ class SellerProfileScreen extends ConsumerWidget {
         final initials = name
             .trim()
             .split(' ')
-            .where((p) => p.isNotEmpty)
-            .map((p) => p[0].toUpperCase())
+            .where((part) => part.isNotEmpty)
+            .map((part) => part[0].toUpperCase())
             .take(2)
             .join();
+
+        final reviewerName = currentUserModel?.fullName.isNotEmpty == true
+            ? currentUserModel!.fullName
+            : currentUser?.displayName ??
+                  currentUser?.email?.split('@').first ??
+                  'Anonymous User';
 
         return Scaffold(
           backgroundColor: AppColors.background,
           body: CustomScrollView(
             slivers: [
-              // ── Hero Header ───────────────────────────────────────
               SliverAppBar(
                 expandedHeight: 260,
                 pinned: true,
@@ -84,12 +106,16 @@ class SellerProfileScreen extends ConsumerWidget {
                           value: 'report',
                           child: Row(
                             children: [
-                              Icon(Icons.flag_outlined,
-                                  color: AppColors.error, size: 20),
+                              Icon(
+                                Icons.flag_outlined,
+                                color: AppColors.error,
+                                size: 20,
+                              ),
                               SizedBox(width: 10),
-                              Text('Report this user',
-                                  style:
-                                      TextStyle(color: AppColors.error)),
+                              Text(
+                                'Report this user',
+                                style: TextStyle(color: AppColors.error),
+                              ),
                             ],
                           ),
                         ),
@@ -109,11 +135,9 @@ class SellerProfileScreen extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const SizedBox(height: 56),
-                        // Avatar
                         CircleAvatar(
                           radius: 44,
-                          backgroundColor:
-                              Colors.white.withValues(alpha: 0.25),
+                          backgroundColor: Colors.white.withValues(alpha: 0.25),
                           child: Text(
                             initials.isEmpty ? '?' : initials,
                             style: const TextStyle(
@@ -124,7 +148,6 @@ class SellerProfileScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        // Name + admin badge
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -145,7 +168,9 @@ class SellerProfileScreen extends ConsumerWidget {
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 3),
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF59E0B),
                                   borderRadius: BorderRadius.circular(20),
@@ -153,8 +178,11 @@ class SellerProfileScreen extends ConsumerWidget {
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.shield_rounded,
-                                        size: 11, color: Colors.white),
+                                    Icon(
+                                      Icons.shield_rounded,
+                                      size: 11,
+                                      color: Colors.white,
+                                    ),
                                     SizedBox(width: 3),
                                     Text(
                                       'ADMIN',
@@ -175,30 +203,35 @@ class SellerProfileScreen extends ConsumerWidget {
                         Text(
                           email,
                           style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              fontSize: 13),
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 13,
+                          ),
                         ),
                         const SizedBox(height: 8),
-                        // Rating row
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.star_rounded,
-                                color: Color(0xFFF59E0B), size: 18),
+                            const Icon(
+                              Icons.star_rounded,
+                              color: Color(0xFFF59E0B),
+                              size: 18,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               rating.toStringAsFixed(1),
                               style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15),
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
                             ),
                             const SizedBox(width: 6),
                             Text(
                               '($reviewCount review${reviewCount == 1 ? '' : 's'})',
                               style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                  fontSize: 13),
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),
@@ -207,39 +240,36 @@ class SellerProfileScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── Contact Info ──────────────────────────────
-                      _InfoCard(items: [
-                        _InfoRow(
-                          icon: Icons.phone_outlined,
-                          label: 'Phone',
-                          value: phone.isNotEmpty && phone != '—'
-                              ? phone
-                              : 'Not provided',
-                        ),
-                        _InfoRow(
-                          icon: Icons.school_outlined,
-                          label: 'University',
-                          value: university,
-                        ),
-                      ]),
+                      _InfoCard(
+                        items: [
+                          _InfoRow(
+                            icon: Icons.phone_outlined,
+                            label: 'Phone',
+                            value: phone.isNotEmpty && phone != '-'
+                                ? phone
+                                : 'Not provided',
+                          ),
+                          _InfoRow(
+                            icon: Icons.school_outlined,
+                            label: 'University',
+                            value: university,
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 24),
-
-                      // ── Leave a Review ────────────────────────────
                       if (!isOwnProfile && currentUser != null)
                         _ReviewSection(
                           revieweeId: uid,
                           revieweeName: name,
                           reviewerId: currentUser.uid,
+                          reviewerName: reviewerName,
                         ),
-
-                      // ── Reviews list ──────────────────────────────
                       const Text(
                         'Reviews',
                         style: TextStyle(
@@ -251,26 +281,33 @@ class SellerProfileScreen extends ConsumerWidget {
                       const SizedBox(height: 12),
                       reviewsAsync.when(
                         loading: () => const Center(
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2)),
-                        error: (e, _) => Text('Error loading reviews: $e',
-                            style: const TextStyle(
-                                color: AppColors.error)),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        error: (error, _) => const Text(
+                          'Failed to load reviews.',
+                          style: TextStyle(color: AppColors.error),
+                        ),
                         data: (reviews) {
                           if (reviews.isEmpty) {
-                            return _EmptyCard(
-                                message: 'No reviews yet.');
+                            return const _EmptyCard(message: 'No reviews yet.');
                           }
+
                           return Column(
                             children: reviews
-                                .map((r) => _ReviewTile(review: r))
+                                .map(
+                                  (review) => _ReviewTile(
+                                    review: review,
+                                    ref: ref,
+                                    canReportReview:
+                                        isOwnProfile && currentUser != null,
+                                    reporterId: currentUser?.uid,
+                                  ),
+                                )
                                 .toList(),
                           );
                         },
                       ),
                       const SizedBox(height: 24),
-
-                      // ── Listings ──────────────────────────────────
                       const Text(
                         "Seller's Listings",
                         style: TextStyle(
@@ -282,19 +319,24 @@ class SellerProfileScreen extends ConsumerWidget {
                       const SizedBox(height: 12),
                       listingsAsync.when(
                         loading: () => const Center(
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2)),
-                        error: (e, _) => Text('Error: $e',
-                            style: const TextStyle(
-                                color: AppColors.error)),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        error: (error, _) => const Text(
+                          'Failed to load listings.',
+                          style: TextStyle(color: AppColors.error),
+                        ),
                         data: (listings) {
                           if (listings.isEmpty) {
-                            return _EmptyCard(
-                                message: 'No listings posted yet.');
+                            return const _EmptyCard(
+                              message: 'No listings posted yet.',
+                            );
                           }
+
                           return Column(
                             children: listings
-                                .map((p) => _ListingTile(product: p))
+                                .map(
+                                  (product) => _ListingTile(product: product),
+                                )
                                 .toList(),
                           );
                         },
@@ -311,17 +353,17 @@ class SellerProfileScreen extends ConsumerWidget {
   }
 }
 
-// ── Review submission section ─────────────────────────────────────────────────
-
 class _ReviewSection extends ConsumerStatefulWidget {
   final String revieweeId;
   final String revieweeName;
   final String reviewerId;
+  final String reviewerName;
 
   const _ReviewSection({
     required this.revieweeId,
     required this.revieweeName,
     required this.reviewerId,
+    required this.reviewerName,
   });
 
   @override
@@ -329,9 +371,10 @@ class _ReviewSection extends ConsumerStatefulWidget {
 }
 
 class _ReviewSectionState extends ConsumerState<_ReviewSection> {
+  final TextEditingController _commentCtrl = TextEditingController();
   int _selectedStars = 0;
-  final _commentCtrl = TextEditingController();
   bool _submitting = false;
+  String? _seededReviewId;
 
   @override
   void dispose() {
@@ -339,7 +382,18 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  void _seedFromReview(ReviewModel? review) {
+    final nextId = review?.reviewId;
+    if (_seededReviewId == nextId) {
+      return;
+    }
+
+    _seededReviewId = nextId;
+    _selectedStars = review?.rating ?? 0;
+    _commentCtrl.text = review?.comment ?? '';
+  }
+
+  Future<void> _saveReview(ReviewModel? existingReview) async {
     if (_selectedStars == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a star rating.')),
@@ -347,92 +401,127 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
       return;
     }
 
+    final trimmedComment = _commentCtrl.text.trim();
+    if (trimmedComment.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Review text is required.')));
+      return;
+    }
+
     setState(() => _submitting = true);
     try {
       final review = ReviewModel(
-        reviewId: '',
+        reviewId: existingReview?.reviewId ?? '',
         reviewerId: widget.reviewerId,
+        reviewerName: widget.reviewerName,
         revieweeId: widget.revieweeId,
-        productId: '',
+        productId: existingReview?.productId ?? '',
         rating: _selectedStars,
-        comment: _commentCtrl.text.trim(),
-        createdAt: DateTime.now(),
+        comment: trimmedComment,
+        createdAt: existingReview?.createdAt ?? DateTime.now(),
+        updatedAt: existingReview == null ? null : DateTime.now(),
       );
-      await ReviewService().submitReview(review);
 
-      // Refresh both the reviews list and the seller profile
+      if (existingReview == null) {
+        await ref.read(reviewServiceProvider).submitReview(review);
+      } else {
+        await ref.read(reviewServiceProvider).updateReview(review);
+      }
+
       ref.invalidate(reviewsProvider(widget.revieweeId));
+      ref.invalidate(
+        reviewerReviewProvider((widget.reviewerId, widget.revieweeId)),
+      );
       ref.invalidate(sellerProfileProvider(widget.revieweeId));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Review submitted! ✓'),
+          SnackBar(
+            content: Text(
+              existingReview == null ? 'Review submitted.' : 'Review updated.',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
-        setState(() {
-          _selectedStars = 0;
-          _commentCtrl.clear();
-        });
       }
-    } catch (e) {
+    } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          const SnackBar(
+            content: Text('Could not save your review. Please try again.'),
+          ),
         );
       }
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
+  }
+
+  Future<void> _deleteReview(ReviewModel review) async {
+    setState(() => _submitting = true);
+    try {
+      await ref
+          .read(reviewServiceProvider)
+          .deleteReview(
+            reviewId: review.reviewId,
+            expectedReviewerId: widget.reviewerId,
+          );
+
+      ref.invalidate(reviewsProvider(widget.revieweeId));
+      ref.invalidate(
+        reviewerReviewProvider((widget.reviewerId, widget.revieweeId)),
+      );
+      ref.invalidate(sellerProfileProvider(widget.revieweeId));
+
+      if (mounted) {
+        setState(() {
+          _seededReviewId = null;
+          _selectedStars = 0;
+          _commentCtrl.clear();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Review deleted.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not delete your review. Please try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final hasReviewedAsync = ref.watch(
-        hasReviewedProvider((widget.reviewerId, widget.revieweeId)));
+    final existingReviewAsync = ref.watch(
+      reviewerReviewProvider((widget.reviewerId, widget.revieweeId)),
+    );
 
-    return hasReviewedAsync.when(
+    return existingReviewAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
-      data: (alreadyReviewed) {
-        if (alreadyReviewed) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(bottom: 24),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: AppColors.success.withValues(alpha: 0.3)),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.check_circle_outline,
-                        color: AppColors.success, size: 20),
-                    SizedBox(width: 10),
-                    Text(
-                      'You have already reviewed this user.',
-                      style: TextStyle(
-                          color: AppColors.success,
-                          fontWeight: FontWeight.w500),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        }
+      data: (existingReview) {
+        _seedFromReview(existingReview);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Leave a Review',
-              style: TextStyle(
+            Text(
+              existingReview == null ? 'Leave a Review' : 'Your Review',
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -449,13 +538,31 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Star picker
+                  if (existingReview != null)
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.18),
+                        ),
+                      ),
+                      child: const Text(
+                        'You can edit or delete the review you already left for this user.',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
                   Row(
-                    children: List.generate(5, (i) {
-                      final star = i + 1;
+                    children: List.generate(5, (index) {
+                      final star = index + 1;
                       return GestureDetector(
-                        onTap: () =>
-                            setState(() => _selectedStars = star),
+                        onTap: () => setState(() => _selectedStars = star),
                         child: Padding(
                           padding: const EdgeInsets.only(right: 6),
                           child: Icon(
@@ -472,16 +579,15 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
                     }),
                   ),
                   const SizedBox(height: 12),
-                  // Comment field
                   TextField(
                     controller: _commentCtrl,
                     maxLines: 3,
                     maxLength: 300,
                     decoration: InputDecoration(
+                      labelText: 'Review text',
                       hintText:
-                          'Share your experience with ${widget.revieweeName.split(' ').first}…',
-                      hintStyle:
-                          const TextStyle(color: AppColors.textHint),
+                          'Share your experience with ${widget.revieweeName.split(' ').first}...',
+                      hintStyle: const TextStyle(color: AppColors.textHint),
                       filled: true,
                       fillColor: AppColors.background,
                       border: OutlineInputBorder(
@@ -496,24 +602,57 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
                     width: double.infinity,
                     height: 46,
                     child: FilledButton(
-                      onPressed: _submitting ? null : _submit,
+                      onPressed: _submitting
+                          ? null
+                          : () => _saveReview(existingReview),
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: _submitting
                           ? const SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2),
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
                             )
-                          : const Text('Submit Review',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold)),
+                          : Text(
+                              existingReview == null
+                                  ? 'Submit Review'
+                                  : 'Update Review',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
+                  if (existingReview != null) ...[
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 44,
+                      child: OutlinedButton(
+                        onPressed: _submitting
+                            ? null
+                            : () => _deleteReview(existingReview),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          side: const BorderSide(color: AppColors.error),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Delete Review',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -525,11 +664,18 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
   }
 }
 
-// ── Review tile ───────────────────────────────────────────────────────────────
-
 class _ReviewTile extends StatelessWidget {
   final ReviewModel review;
-  const _ReviewTile({required this.review});
+  final WidgetRef ref;
+  final bool canReportReview;
+  final String? reporterId;
+
+  const _ReviewTile({
+    required this.review,
+    required this.ref,
+    required this.canReportReview,
+    required this.reporterId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -545,40 +691,99 @@ class _ReviewTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Stars
-              Row(
-                children: List.generate(
-                  5,
-                  (i) => Icon(
-                    i < review.rating
-                        ? Icons.star_rounded
-                        : Icons.star_outline_rounded,
-                    color: i < review.rating
-                        ? const Color(0xFFF59E0B)
-                        : AppColors.textHint,
-                    size: 16,
-                  ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      review.reviewerName.isEmpty
+                          ? 'Anonymous user'
+                          : review.reviewerName,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: List.generate(
+                        5,
+                        (index) => Icon(
+                          index < review.rating
+                              ? Icons.star_rounded
+                              : Icons.star_outline_rounded,
+                          color: index < review.rating
+                              ? const Color(0xFFF59E0B)
+                              : AppColors.textHint,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const Spacer(),
-              Text(
-                _formatDate(review.createdAt),
-                style: const TextStyle(
-                    color: AppColors.textHint, fontSize: 11),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _formatDate(review.updatedAt ?? review.createdAt),
+                    style: const TextStyle(
+                      color: AppColors.textHint,
+                      fontSize: 11,
+                    ),
+                  ),
+                  if (review.isEdited)
+                    const Text(
+                      'Edited',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                ],
               ),
+              if (canReportReview && reporterId != null) ...[
+                const SizedBox(width: 4),
+                PopupMenuButton<String>(
+                  icon: const Icon(
+                    Icons.more_horiz_rounded,
+                    color: AppColors.textSecondary,
+                  ),
+                  onSelected: (value) {
+                    if (value == 'report') {
+                      showReportDialog(
+                        context,
+                        ref,
+                        reporterId: reporterId!,
+                        targetType: 'review',
+                        targetId: review.reviewId,
+                        targetName: 'Review by ${review.reviewerName}',
+                      );
+                    }
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem<String>(
+                      value: 'report',
+                      child: Text('Report review'),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
-          if (review.comment.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              review.comment,
-              style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 14,
-                  height: 1.5),
+          const SizedBox(height: 8),
+          Text(
+            review.comment,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              height: 1.5,
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -589,10 +794,9 @@ class _ReviewTile extends StatelessWidget {
   }
 }
 
-// ── Info card ─────────────────────────────────────────────────────────────────
-
 class _InfoCard extends StatelessWidget {
   final List<_InfoRow> items;
+
   const _InfoCard({required this.items});
 
   @override
@@ -606,28 +810,37 @@ class _InfoCard extends StatelessWidget {
       ),
       child: Column(
         children: items
-            .map((row) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                      Icon(row.icon, color: AppColors.primary, size: 20),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(row.label,
-                              style: const TextStyle(
-                                  color: AppColors.textHint, fontSize: 11)),
-                          Text(row.value,
-                              style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ))
+            .map(
+              (row) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(row.icon, color: AppColors.primary, size: 20),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          row.label,
+                          style: const TextStyle(
+                            color: AppColors.textHint,
+                            fontSize: 11,
+                          ),
+                        ),
+                        Text(
+                          row.value,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            )
             .toList(),
       ),
     );
@@ -638,14 +851,17 @@ class _InfoRow {
   final IconData icon;
   final String label;
   final String value;
-  const _InfoRow(
-      {required this.icon, required this.label, required this.value});
-}
 
-// ── Empty state card ─────────────────────────────────────────────────────────
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+}
 
 class _EmptyCard extends StatelessWidget {
   final String message;
+
   const _EmptyCard({required this.message});
 
   @override
@@ -659,37 +875,28 @@ class _EmptyCard extends StatelessWidget {
         border: Border.all(color: AppColors.border),
       ),
       child: Center(
-        child: Text(message,
-            style: const TextStyle(color: AppColors.textSecondary)),
+        child: Text(
+          message,
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
       ),
     );
   }
 }
 
-// ── Listing tile ──────────────────────────────────────────────────────────────
-
 class _ListingTile extends StatelessWidget {
   final ProductModel product;
+
   const _ListingTile({required this.product});
 
-  Color get _statusColor {
-    switch (product.status) {
-      case 'Available':
-        return AppColors.success;
-      case 'Pending':
-        return const Color(0xFFF59E0B);
-      case 'Rejected':
-        return AppColors.error;
-      default:
-        return AppColors.textSecondary;
-    }
-  }
+  Color get _statusColor => ProductStatus.color(product.status);
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.of(context)
-          .pushNamed(AppRoutes.listingDetail, arguments: product.productId),
+      onTap: () => Navigator.of(
+        context,
+      ).pushNamed(AppRoutes.listingDetail, arguments: product.productId),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
@@ -709,47 +916,58 @@ class _ListingTile extends StatelessWidget {
               ),
               clipBehavior: Clip.antiAlias,
               child: product.images.isNotEmpty
-                  ? Image.network(product.images.first, fit: BoxFit.cover,
+                  ? Image.network(
+                      product.images.first,
+                      fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => const Icon(
-                            Icons.broken_image_outlined,
-                            color: AppColors.error,
-                          ))
-                  : const Icon(Icons.image_outlined,
-                      color: AppColors.primary, size: 28),
+                        Icons.broken_image_outlined,
+                        color: AppColors.error,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.image_outlined,
+                      color: AppColors.primary,
+                      size: 28,
+                    ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(product.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary)),
+                  Text(
+                    product.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     'JD ${product.price.toStringAsFixed(2)} · ${product.category}',
                     style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12),
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
             ),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: _statusColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                product.status,
+                ProductStatus.label(product.status),
                 style: TextStyle(
-                    color: _statusColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600),
+                  color: _statusColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
