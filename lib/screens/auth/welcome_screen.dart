@@ -22,13 +22,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   late Animation<double> _fadeIn;
   late Animation<Offset> _slideUp;
 
-  // Dark navy palette (self-contained, not from AppColors since this is a
-  // special full-screen dark surface).
-  static const Color _navy = Color(0xFF0A1628);
-  static const Color _navyMid = Color(0xFF0F2044);
-  static const Color _accent = Color(0xFF1E88E5);
-  static const Color _accentBright = Color(0xFF42A5F5);
-
   @override
   void initState() {
     super.initState();
@@ -65,7 +58,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: _navy,
+      backgroundColor: AppColors.authNavyDeep,
       body: Stack(
         children: [
           // ── Gradient background ────────────────────────────────────
@@ -73,7 +66,11 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [_navy, _navyMid, Color(0xFF132D5C)],
+                  colors: [
+                    AppColors.authNavyDeep,
+                    AppColors.authNavyMid,
+                    AppColors.authNavyBright,
+                  ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   stops: [0.0, 0.5, 1.0],
@@ -91,7 +88,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               height: 220,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _accent.withValues(alpha: 0.12),
+                color: AppColors.primary.withValues(alpha: 0.12),
               ),
             ),
           ),
@@ -105,7 +102,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               height: 180,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _accentBright.withValues(alpha: 0.08),
+                color: AppColors.authHighlight.withValues(alpha: 0.08),
               ),
             ),
           ),
@@ -129,13 +126,16 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: const LinearGradient(
-                            colors: [_accent, _accentBright],
+                            colors: [
+                              AppColors.primary,
+                              AppColors.authHighlight,
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: _accent.withValues(alpha: 0.45),
+                              color: AppColors.primary.withValues(alpha: 0.45),
                               blurRadius: 28,
                               offset: const Offset(0, 10),
                             ),
@@ -143,7 +143,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         ),
                         child: const Icon(
                           Icons.storefront_rounded,
-                          color: Colors.white,
+                          color: AppColors.onPrimary,
                           size: 44,
                         ),
                       ),
@@ -153,12 +153,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       // ── App name ─────────────────────────────────
                       const Text(
                         'UniTrade',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
+                        style: AppTextStyles.authBrandTitle,
                       ),
 
                       const SizedBox(height: 8),
@@ -168,7 +163,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         'The exclusive campus marketplace\nfor university students',
                         textAlign: TextAlign.center,
                         style: AppTextStyles.bodyLarge.copyWith(
-                          color: Colors.white.withValues(alpha: 0.65),
+                          color: AppColors.onPrimarySoft,
                           height: 1.5,
                         ),
                       ),
@@ -181,7 +176,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         title: 'Buy & Sell on Campus',
                         subtitle:
                             'Textbooks, electronics, clothing & more — all in one place.',
-                        accentColor: _accent,
+                        accentColor: AppColors.primary,
                       ),
                       const SizedBox(height: 16),
                       _FeatureRow(
@@ -197,7 +192,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         title: 'Chat with Sellers',
                         subtitle:
                             'Message sellers directly and close deals safely.',
-                        accentColor: const Color(0xFF66BB6A),
+                        accentColor: AppColors.successLight,
                       ),
 
                       const Spacer(),
@@ -208,7 +203,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         child: FilledButton(
                           onPressed: _goRegister,
                           style: FilledButton.styleFrom(
-                            backgroundColor: _accent,
+                            backgroundColor: AppColors.primary,
                             padding: const EdgeInsets.symmetric(vertical: 18),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(50),
@@ -217,11 +212,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           ),
                           child: const Text(
                             'Register',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                            style: AppTextStyles.primaryButtonLarge,
                           ),
                         ),
                       ),
@@ -234,19 +225,11 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         child: RichText(
                           text: TextSpan(
                             text: 'Already have an account?  ',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.55),
-                              fontSize: 14,
-                            ),
+                            style: AppTextStyles.onPrimaryPrompt,
                             children: const [
                               TextSpan(
                                 text: 'LOGIN',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: Colors.white,
-                                ),
+                                style: AppTextStyles.onPrimaryLink,
                               ),
                             ],
                           ),
@@ -304,23 +287,9 @@ class _FeatureRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text(title, style: AppTextStyles.onPrimaryFeatureTitle),
               const SizedBox(height: 3),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.55),
-                  fontSize: 12,
-                  height: 1.4,
-                ),
-              ),
+              Text(subtitle, style: AppTextStyles.onPrimaryFeatureBody),
             ],
           ),
         ),

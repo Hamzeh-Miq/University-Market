@@ -61,8 +61,79 @@ class AppTextStyles {
   static const TextStyle buttonText = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
-    color: Colors.white,
+    color: AppColors.onPrimary,
     letterSpacing: 0.5,
+  );
+
+  static const TextStyle navLabel = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textPrimary,
+  );
+
+  static const TextStyle adminBadge = TextStyle(
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    color: AppColors.onPrimary,
+    letterSpacing: 0.5,
+  );
+
+  static const TextStyle onPrimaryTitle = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.bold,
+    color: AppColors.onPrimary,
+  );
+
+  static const TextStyle onPrimaryBody = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.normal,
+    color: AppColors.onPrimaryMuted,
+  );
+
+  static const TextStyle onPrimaryFeatureTitle = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.bold,
+    color: AppColors.onPrimary,
+  );
+
+  static const TextStyle onPrimaryFeatureBody = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.normal,
+    color: AppColors.onPrimarySubtle,
+    height: 1.4,
+  );
+
+  static const TextStyle onPrimaryLink = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.bold,
+    color: AppColors.onPrimary,
+    decoration: TextDecoration.underline,
+    decorationColor: AppColors.onPrimary,
+  );
+
+  static const TextStyle onPrimaryPrompt = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.normal,
+    color: AppColors.onPrimarySubtle,
+  );
+
+  static const TextStyle dangerNavLabel = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    color: AppColors.error,
+  );
+
+  static const TextStyle authBrandTitle = TextStyle(
+    fontSize: 36,
+    fontWeight: FontWeight.bold,
+    color: AppColors.onPrimary,
+    letterSpacing: 0.5,
+  );
+
+  static const TextStyle primaryButtonLarge = TextStyle(
+    fontSize: 17,
+    fontWeight: FontWeight.bold,
+    color: AppColors.onPrimary,
   );
 
   static const TextStyle appTitle = TextStyle(
@@ -109,7 +180,7 @@ class AppTextStyles {
   static const TextStyle authTitle = TextStyle(
     fontSize: 28,
     fontWeight: FontWeight.w800,
-    color: Colors.white,
+    color: AppColors.onPrimary,
     height: 1.1,
   );
 

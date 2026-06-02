@@ -44,6 +44,24 @@ class UserService {
     }
   }
 
+  /// Replaces the user's saved favorite product IDs.
+  Future<void> updateFavoriteProductIds(
+    String uid,
+    List<String> productIds,
+  ) async {
+    try {
+      final uniqueIds = productIds.toSet().toList();
+      await _db.collection('users').doc(uid).update({
+        'favoriteProductIds': uniqueIds,
+      });
+    } catch (e, st) {
+      Error.throwWithStackTrace(
+        Exception('Failed to update favorite listings: $e'),
+        st,
+      );
+    }
+  }
+
   /// Returns a real-time stream of the current user's profile.
   Stream<UserModel?> watchUserProfile(String uid) {
     return _db.collection('users').doc(uid).snapshots().map((doc) {

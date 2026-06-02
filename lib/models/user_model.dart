@@ -24,6 +24,9 @@ class UserModel {
   /// The date/time when the current subscription was activated.
   final DateTime? subscriptionActivatedAt;
 
+  /// Product document IDs saved by this user.
+  final List<String> favoriteProductIds;
+
   UserModel({
     required this.uid,
     required this.email,
@@ -40,6 +43,7 @@ class UserModel {
     this.isSubscribed = false,
     this.subscriptionExpiresAt,
     this.subscriptionActivatedAt,
+    this.favoriteProductIds = const [],
   });
 
   /// The user's display name (first name only).
@@ -96,6 +100,9 @@ class UserModel {
           ?.toDate(),
       subscriptionActivatedAt: (json['subscriptionActivatedAt'] as Timestamp?)
           ?.toDate(),
+      favoriteProductIds: List<String>.from(
+        (json['favoriteProductIds'] as List?) ?? const <String>[],
+      ),
     );
   }
 
@@ -123,6 +130,7 @@ class UserModel {
       'subscriptionActivatedAt': subscriptionActivatedAt != null
           ? Timestamp.fromDate(subscriptionActivatedAt!)
           : null,
+      'favoriteProductIds': favoriteProductIds,
     };
   }
 }

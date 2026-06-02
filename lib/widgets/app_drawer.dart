@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_routes.dart';
+import '../constants/app_text_styles.dart';
 import '../data/dummy_categories.dart';
 import '../providers/auth_provider.dart';
 
@@ -33,12 +34,12 @@ class AppDrawer extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: AppColors.onPrimaryFaint,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
                     Icons.storefront_outlined,
-                    color: Colors.white,
+                    color: AppColors.onPrimary,
                     size: 40,
                   ),
                 ),
@@ -54,11 +55,7 @@ class AppDrawer extends ConsumerWidget {
                             : 'UniTrade',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppTextStyles.onPrimaryTitle,
                       ),
                     ),
                     if (isAdmin) ...[
@@ -69,7 +66,7 @@ class AppDrawer extends ConsumerWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF59E0B), // amber
+                          color: AppColors.amber,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Row(
@@ -78,18 +75,10 @@ class AppDrawer extends ConsumerWidget {
                             Icon(
                               Icons.shield_rounded,
                               size: 11,
-                              color: Colors.white,
+                              color: AppColors.onPrimary,
                             ),
                             SizedBox(width: 3),
-                            Text(
-                              'ADMIN',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
+                            Text('ADMIN', style: AppTextStyles.adminBadge),
                           ],
                         ),
                       ),
@@ -101,7 +90,7 @@ class AppDrawer extends ConsumerWidget {
                   userModel?.email ?? 'Campus Marketplace',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  style: AppTextStyles.onPrimaryBody,
                 ),
               ],
             ),
@@ -111,15 +100,12 @@ class AppDrawer extends ConsumerWidget {
               Icons.category_outlined,
               color: AppColors.primary,
             ),
-            title: const Text(
-              'Departments',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            title: const Text('Departments', style: AppTextStyles.navLabel),
             children: dummyCategories.map((cat) {
               return ListTile(
                 contentPadding: const EdgeInsets.only(left: 54, right: 16),
                 leading: Icon(cat.icon, color: cat.color, size: 20),
-                title: Text(cat.name, style: const TextStyle(fontSize: 14)),
+                title: Text(cat.name, style: AppTextStyles.bodyMedium),
                 onTap: () {
                   Navigator.pop(context); // Close drawer
                   Navigator.of(
@@ -135,10 +121,7 @@ class AppDrawer extends ConsumerWidget {
               Icons.person_outline,
               color: AppColors.textPrimary,
             ),
-            title: const Text(
-              'My Profile',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            title: const Text('My Profile', style: AppTextStyles.navLabel),
             onTap: () {
               Navigator.pop(context);
               Navigator.of(context).pushNamed(AppRoutes.profile);
@@ -149,10 +132,7 @@ class AppDrawer extends ConsumerWidget {
               Icons.info_outline,
               color: AppColors.textPrimary,
             ),
-            title: const Text(
-              'About Us',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            title: const Text('About Us', style: AppTextStyles.navLabel),
             onTap: () {
               Navigator.pop(context);
               Navigator.of(context).pushNamed(AppRoutes.aboutUs);
@@ -166,10 +146,7 @@ class AppDrawer extends ConsumerWidget {
               ),
               title: const Text(
                 'Pending Approvals',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
+                style: AppTextStyles.actionLink,
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -179,13 +156,7 @@ class AppDrawer extends ConsumerWidget {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout, color: AppColors.error),
-            title: const Text(
-              'Logout',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: AppColors.error,
-              ),
-            ),
+            title: const Text('Logout', style: AppTextStyles.dangerNavLabel),
             onTap: () async {
               // Show confirm dialog BEFORE closing the drawer so
               // the context is still valid for showDialog.

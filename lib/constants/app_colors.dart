@@ -10,6 +10,9 @@ class AppColors {
   static const Color primaryLight = Color(0xFFE7F0FF);
 
   // Authentication depth colors
+  static const Color authNavyDeep = Color(0xFF0A1628);
+  static const Color authNavyMid = Color(0xFF0F2044);
+  static const Color authNavyBright = Color(0xFF132D5C);
   static const Color authNavy = Color(0xFF0B1E43);
   static const Color authBlue = Color(0xFF1A3668);
   static const Color authHighlight = Color(0xFF4FA3FF);
@@ -35,8 +38,18 @@ class AppColors {
 
   // Status
   static const Color success = Color(0xFF43A047);
+  static const Color successLight = Color(0xFF66BB6A);
   static const Color error = Color(0xFFE53935);
   static const Color warning = Color(0xFFFFB300);
+
+  // Dark-surface foregrounds and overlays
+  static const Color onPrimary = Colors.white;
+  static const Color onPrimaryMuted = Color(0xB3FFFFFF);
+  static const Color onPrimarySoft = Color(0xA6FFFFFF);
+  static const Color onPrimarySubtle = Color(0x8CFFFFFF);
+  static const Color onPrimaryFaint = Color(0x33FFFFFF);
+  static const Color onPrimaryDivider = Color(0x3DFFFFFF);
+  static const Color subtleBlackShadow = Color(0x0D000000);
 
   // Divider & border
   static const Color divider = Color(0xFFE8EDF5);

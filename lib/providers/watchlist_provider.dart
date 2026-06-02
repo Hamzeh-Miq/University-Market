@@ -1,16 +1,37 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'auth_provider.dart';
+
 /// Notifier to manage a list of product IDs the user is watching.
 class WatchlistNotifier extends Notifier<List<String>> {
   @override
-  List<String> build() => [];
+  List<String> build() {
+    return ref
+        .watch(currentUserModelProvider)
+        .maybeWhen(
+          data: (user) => user?.favoriteProductIds.toSet().toList() ?? [],
+          orElse: () => [],
+        );
+  }
 
   /// Toggles a product in or out of the watchlist.
-  void toggleItem(String productId) {
+  Future<void> toggleItem(String productId) async {
+    final user = ref.read(currentUserModelProvider).value;
+    if (user == null) return;
+
+    final previousState = state;
     if (state.contains(productId)) {
       state = state.where((id) => id != productId).toList();
     } else {
       state = [...state, productId];
+    }
+
+    try {
+      await ref
+          .read(userServiceProvider)
+          .updateFavoriteProductIds(user.uid, state);
+    } catch (_) {
+      state = previousState;
     }
   }
 

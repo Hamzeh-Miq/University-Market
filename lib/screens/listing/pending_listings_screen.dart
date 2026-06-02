@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_routes.dart';
+import '../../constants/app_text_styles.dart';
 import '../../constants/product_status.dart';
 import '../../models/product_model.dart';
 import '../../models/user_model.dart';
@@ -26,10 +27,7 @@ class PendingListingsScreen extends ConsumerWidget {
             children: [
               Icon(Icons.lock_outline, size: 64, color: AppColors.error),
               SizedBox(height: 16),
-              Text(
-                'Admin access required.',
-                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-              ),
+              Text('Admin access required.', style: AppTextStyles.bodyLarge),
             ],
           ),
         ),
@@ -39,16 +37,10 @@ class PendingListingsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        title: const Text(
-          'Post Requests',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
+        title: const Text('Post Requests', style: AppTextStyles.heading3),
       ),
       body: pendingAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -67,7 +59,7 @@ class PendingListingsScreen extends ConsumerWidget {
                 const Text(
                   'Failed to load pending listings.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: AppTextStyles.bodyMedium,
                 ),
               ],
             ),
@@ -88,10 +80,7 @@ class PendingListingsScreen extends ConsumerWidget {
                   const Text(
                     'All caught up!\nNo posts pending review.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 15,
-                    ),
+                    style: AppTextStyles.bodyMedium,
                   ),
                 ],
               ),
@@ -196,15 +185,15 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
+          color: AppColors.amber.withValues(alpha: 0.4),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: AppColors.subtleBlackShadow,
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -257,11 +246,7 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                         product.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: AppColors.textPrimary,
-                        ),
+                        style: AppTextStyles.cardTitle,
                       ),
                       const SizedBox(height: 6),
                       Wrap(
@@ -311,9 +296,8 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                 product.description,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.textSecondary,
-                  fontSize: 13,
                 ),
               ),
             ),
@@ -346,11 +330,10 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                           color: AppColors.error,
                           size: 18,
                         ),
-                        label: const Text(
+                        label: Text(
                           'Reject',
-                          style: TextStyle(
+                          style: AppTextStyles.actionLink.copyWith(
                             color: AppColors.error,
-                            fontWeight: FontWeight.bold,
                           ),
                         ),
                         style: TextButton.styleFrom(
@@ -376,11 +359,10 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                           color: AppColors.success,
                           size: 18,
                         ),
-                        label: const Text(
+                        label: Text(
                           'Approve',
-                          style: TextStyle(
+                          style: AppTextStyles.actionLink.copyWith(
                             color: AppColors.success,
-                            fontWeight: FontWeight.bold,
                           ),
                         ),
                         style: TextButton.styleFrom(
@@ -414,27 +396,33 @@ class _SellerRow extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         child: sellerAsync.when(
-          loading: () => const Row(
+          loading: () => Row(
             children: [
-              SizedBox(
+              const SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Text(
                 'Loading seller...',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),
-          error: (_, __) => const Row(
+          error: (_, __) => Row(
             children: [
-              Icon(Icons.person_outline, size: 20, color: AppColors.error),
-              SizedBox(width: 8),
+              const Icon(
+                Icons.person_outline,
+                size: 20,
+                color: AppColors.error,
+              ),
+              const SizedBox(width: 8),
               Text(
                 'Unknown seller',
-                style: TextStyle(color: AppColors.error, fontSize: 13),
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.error),
               ),
             ],
           ),
@@ -460,10 +448,9 @@ class _SellerRow extends StatelessWidget {
                   backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                   child: Text(
                     initials.isEmpty ? '?' : initials,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                    style: AppTextStyles.metadata.copyWith(
                       color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -474,14 +461,7 @@ class _SellerRow extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
+                          Text(name, style: AppTextStyles.labelLarge),
                           if (isAdmin) ...[
                             const SizedBox(width: 6),
                             Container(
@@ -490,42 +470,25 @@ class _SellerRow extends StatelessWidget {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF59E0B),
+                                color: AppColors.amber,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Text(
                                 'ADMIN',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: AppTextStyles.adminBadge,
                               ),
                             ),
                           ],
                         ],
                       ),
-                      Text(
-                        seller?.email ?? '',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 11,
-                        ),
-                      ),
+                      Text(seller?.email ?? '', style: AppTextStyles.bodySmall),
                     ],
                   ),
                 ),
                 // Tap hint
                 const Row(
                   children: [
-                    Text(
-                      'View profile',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    Text('View profile', style: AppTextStyles.actionLink),
                     SizedBox(width: 2),
                     Icon(
                       Icons.chevron_right_rounded,
@@ -559,14 +522,7 @@ class _Badge extends StatelessWidget {
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w600,
-          fontSize: 11,
-        ),
-      ),
+      child: Text(label, style: AppTextStyles.metadata.copyWith(color: color)),
     );
   }
 }
