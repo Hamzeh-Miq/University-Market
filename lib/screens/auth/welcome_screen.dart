@@ -109,135 +109,137 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
           // ── Main content ──────────────────────────────────────────
           SafeArea(
-            child: FadeTransition(
-              opacity: _fadeIn,
-              child: SlideTransition(
-                position: _slideUp,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
-                  child: Column(
-                    children: [
-                      SizedBox(height: size.height * 0.07),
-
-                      // ── App icon ─────────────────────────────────
-                      Container(
-                        width: 90,
-                        height: 90,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            colors: [
-                              AppColors.primary,
-                              AppColors.authHighlight,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.45),
-                              blurRadius: 28,
-                              offset: const Offset(0, 10),
+            child: SingleChildScrollView(
+              child: FadeTransition(
+                opacity: _fadeIn,
+                child: SlideTransition(
+                  position: _slideUp,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    child: Column(
+                      children: [
+                        SizedBox(height: size.height * 0.07),
+  
+                        // ── App icon ─────────────────────────────────
+                        Container(
+                          width: 90,
+                          height: 90,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              colors: [
+                                AppColors.primary,
+                                AppColors.authHighlight,
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.storefront_rounded,
-                          color: AppColors.onPrimary,
-                          size: 44,
-                        ),
-                      ),
-
-                      const SizedBox(height: 28),
-
-                      // ── App name ─────────────────────────────────
-                      const Text(
-                        'UniTrade',
-                        style: AppTextStyles.authBrandTitle,
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // ── Tagline ───────────────────────────────────
-                      Text(
-                        'The exclusive campus marketplace\nfor university students',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.bodyLarge.copyWith(
-                          color: AppColors.onPrimarySoft,
-                          height: 1.5,
-                        ),
-                      ),
-
-                      SizedBox(height: size.height * 0.055),
-
-                      // ── Feature highlights ────────────────────────
-                      _FeatureRow(
-                        icon: Icons.sell_rounded,
-                        title: 'Buy & Sell on Campus',
-                        subtitle:
-                            'Textbooks, electronics, clothing & more — all in one place.',
-                        accentColor: AppColors.primary,
-                      ),
-                      const SizedBox(height: 16),
-                      _FeatureRow(
-                        icon: Icons.verified_user_rounded,
-                        title: 'Students Only',
-                        subtitle:
-                            'Exclusive to verified ${AuthService.studentEmailDomain} inboxes.',
-                        accentColor: AppColors.accent,
-                      ),
-                      const SizedBox(height: 16),
-                      _FeatureRow(
-                        icon: Icons.chat_bubble_rounded,
-                        title: 'Chat with Sellers',
-                        subtitle:
-                            'Message sellers directly and close deals safely.',
-                        accentColor: AppColors.successLight,
-                      ),
-
-                      const Spacer(),
-
-                      // ── Register button ───────────────────────────
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: _goRegister,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(50),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            'Register',
-                            style: AppTextStyles.primaryButtonLarge,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // ── Login link ────────────────────────────────
-                      GestureDetector(
-                        onTap: _goLogin,
-                        child: RichText(
-                          text: TextSpan(
-                            text: 'Already have an account?  ',
-                            style: AppTextStyles.onPrimaryPrompt,
-                            children: const [
-                              TextSpan(
-                                text: 'LOGIN',
-                                style: AppTextStyles.onPrimaryLink,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.45),
+                                blurRadius: 28,
+                                offset: const Offset(0, 10),
                               ),
                             ],
                           ),
+                          child: const Icon(
+                            Icons.storefront_rounded,
+                            color: AppColors.onPrimary,
+                            size: 44,
+                          ),
                         ),
-                      ),
-
-                      const SizedBox(height: 32),
-                    ],
+  
+                        const SizedBox(height: 28),
+  
+                        // ── App name ─────────────────────────────────
+                        const Text(
+                          'UniSooq',
+                          style: AppTextStyles.authBrandTitle,
+                        ),
+  
+                        const SizedBox(height: 8),
+  
+                        // ── Tagline ───────────────────────────────────
+                        Text(
+                          'The exclusive campus marketplace\nfor university students',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.bodyLarge.copyWith(
+                            color: AppColors.onPrimarySoft,
+                            height: 1.5,
+                          ),
+                        ),
+  
+                        SizedBox(height: size.height * 0.055),
+  
+                        // ── Feature highlights ────────────────────────
+                        _FeatureRow(
+                          icon: Icons.sell_rounded,
+                          title: 'Buy & Sell on Campus',
+                          subtitle:
+                              'Textbooks, electronics, clothing & more — all in one place.',
+                          accentColor: AppColors.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        _FeatureRow(
+                          icon: Icons.verified_user_rounded,
+                          title: 'Students Only',
+                          subtitle:
+                              'Exclusive to verified ${AuthService.studentEmailDomain} inboxes.',
+                          accentColor: AppColors.accent,
+                        ),
+                        const SizedBox(height: 16),
+                        _FeatureRow(
+                          icon: Icons.chat_bubble_rounded,
+                          title: 'Chat with Sellers',
+                          subtitle:
+                              'Message sellers directly and close deals safely.',
+                          accentColor: AppColors.successLight,
+                        ),
+  
+                        const SizedBox(height: 32),
+  
+                        // ── Register button ───────────────────────────
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: _goRegister,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              'Register',
+                              style: AppTextStyles.primaryButtonLarge,
+                            ),
+                          ),
+                        ),
+  
+                        const SizedBox(height: 16),
+  
+                        // ── Login link ────────────────────────────────
+                        GestureDetector(
+                          onTap: _goLogin,
+                          child: RichText(
+                            text: TextSpan(
+                              text: 'Already have an account?  ',
+                              style: AppTextStyles.onPrimaryPrompt,
+                              children: const [
+                                TextSpan(
+                                  text: 'LOGIN',
+                                  style: AppTextStyles.onPrimaryLink,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+  
+                        const SizedBox(height: 32),
+                      ],
+                    ),
                   ),
                 ),
               ),
