@@ -251,13 +251,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       const SizedBox(width: 12),
                       _StatCard(
-                        label: 'Verified',
-                        value: (firebaseUser?.emailVerified ?? false)
-                            ? 'Yes ✓'
-                            : 'No',
-                        color: (firebaseUser?.emailVerified ?? false)
-                            ? AppColors.success
-                            : AppColors.error,
+                        label: 'Role',
+                        value: (_userModel?.role ?? 'user').toUpperCase(),
+                        color: AppColors.primary,
                       ),
                     ],
                   ),
@@ -493,6 +489,8 @@ class _StatCard extends StatelessWidget {
           children: [
             Text(
               value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
@@ -502,6 +500,8 @@ class _StatCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 11,
@@ -540,25 +540,31 @@ class _InfoCard extends StatelessWidget {
                   children: [
                     Icon(row.icon, color: AppColors.primary, size: 20),
                     const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          row.label,
-                          style: const TextStyle(
-                            color: AppColors.textHint,
-                            fontSize: 11,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            row.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.textHint,
+                              fontSize: 11,
+                            ),
                           ),
-                        ),
-                        Text(
-                          row.value,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                          Text(
+                            row.value,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
