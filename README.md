@@ -1,6 +1,6 @@
-# UniTrade
+# UniSooq
 
-UniTrade is a Flutter marketplace app for Applied Science University students. It supports student-only authentication, moderated listings, peer messaging, profiles, reviews, and admin-managed subscriptions.
+UniSooq is a Flutter marketplace app for Applied Science Private University students. It supports student-only authentication, moderated listings, peer messaging, profiles, reviews, and admin-managed subscriptions.
 
 ## Stack
 

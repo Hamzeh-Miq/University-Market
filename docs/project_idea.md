@@ -1,4 +1,4 @@
-# UniTrade — University Marketplace App
+# UniSooq — University Marketplace App
 ### Project Idea & Requirements Document
 
 ---
@@ -27,9 +27,9 @@
 
 ## 1. General Idea
 
-**UniTrade** is a mobile application that acts as a trusted platform and middleman service exclusively for university students. It enables sellers to quickly and safely offload items they no longer need — such as used textbooks, lab coats, lab equipment, dorm furniture, and stationery — while giving buyers a structured catalog to browse for exactly the academic items they need each semester, without paying a retail premium.
+**UniSooq** is a mobile application that acts as a trusted platform and middleman service exclusively for university students. It enables sellers to quickly and safely offload items they no longer need — such as used textbooks, lab coats, lab equipment, dorm furniture, and stationery — while giving buyers a structured catalog to browse for exactly the academic items they need each semester, without paying a retail premium.
 
-The core value proposition is **safety, structure, and locality**. Unlike generic marketplaces or informal social media groups, UniTrade is:
+The core value proposition is **safety, structure, and locality**. Unlike generic marketplaces or informal social media groups, UniSooq is:
 
 - **Closed to verified university students only** (via `@students.edu.jo` or university-issued email verification)
 - **Structured** with category-based browsing, course code tagging, and price filtering
@@ -62,7 +62,7 @@ These platforms benefit from a massive user base and broad reach, but they are f
 **Social Media Groups (e.g., University-specific Facebook Groups, WhatsApp Chats)**
 These channels are more localized and feel more personal, but they lack structured e-commerce features entirely. There is no search functionality, no consistent categorization, no in-app payment or transaction confirmation, and no rating system. Listings posted in a group chat are buried within hours as new messages arrive, making discovery unreliable and frustrating.
 
-Neither category provides a solution that is simultaneously localized, structured, secure, and campus-aware — the exact combination UniTrade is designed to deliver.
+Neither category provides a solution that is simultaneously localized, structured, secure, and campus-aware — the exact combination UniSooq is designed to deliver.
 
 ---
 
@@ -82,7 +82,7 @@ The core problem is the **absence of a centralized, secure, and purpose-built pl
 
 ### 1.4 Problem Solution
 
-The proposed solution is **UniTrade** — a mobile and web-based application exclusive to university students, verified via `@students.edu.jo` university-issued email addresses.
+The proposed solution is **UniSooq** — a mobile and web-based application exclusive to university students, verified via `@students.edu.jo` university-issued email addresses.
 
 The application provides a structured, safe, and community-aware marketplace where students can:
 
@@ -119,7 +119,7 @@ To develop a secure, efficient, and community-exclusive marketplace application 
 
 The project will be developed using the Agile Scrum framework, organized into two-week sprint cycles. Each sprint will deliver a functional, testable increment of the application — for example, Sprint 1 focuses on User Authentication, Sprint 2 on Item Listings, Sprint 3 on Messaging, and so on.
 
-Agile is the appropriate choice for this project for several reasons. UniTrade is a highly user-centric application whose success depends on product-market fit within a specific community — university students. Early and continuous feedback from a real subset of student users is essential to validate features, surface usability issues, and adjust priorities. The iterative nature of Scrum accommodates this feedback loop naturally. Additionally, the core feature set is well-understood but the priority and shape of individual features may evolve as real-world usage patterns emerge. Agile's flexibility allows the team to pivot without discarding already-delivered value.
+Agile is the appropriate choice for this project for several reasons. UniSooq is a highly user-centric application whose success depends on product-market fit within a specific community — university students. Early and continuous feedback from a real subset of student users is essential to validate features, surface usability issues, and adjust priorities. The iterative nature of Scrum accommodates this feedback loop naturally. Additionally, the core feature set is well-understood but the priority and shape of individual features may evolve as real-world usage patterns emerge. Agile's flexibility allows the team to pivot without discarding already-delivered value.
 
 ---
 
@@ -205,7 +205,7 @@ graph TD
 
 #### Explanation
 
-The Use Case Diagram for UniTrade identifies two primary system actors: the **Student** and the **Admin**. Each actor interacts with the system through a distinct set of use cases that reflect their role and permissions within the platform.
+The Use Case Diagram for UniSooq identifies two primary system actors: the **Student** and the **Admin**. Each actor interacts with the system through a distinct set of use cases that reflect their role and permissions within the platform.
 
 The **Student** actor represents any verified university user of the application. Students engage with the full set of marketplace functionality available to regular users. They begin their journey with **Register / Login**, which enforces `.edu` email verification to ensure only legitimate university community members gain access. Once authenticated, students can **Manage Profile** — updating their display name, avatar, and viewing their personal rating. The **Create Listing** use case allows sellers to post items for sale with photos, descriptions, categories, and pricing. On the buyer side, **Search & Filter Items** enables discovery of relevant listings using keyword search and multi-dimensional filters. **Message Seller** facilitates direct, secure in-app communication between interested buyers and item owners. Finally, **Rate User** closes the transaction loop, allowing both parties to submit reviews that build the community trust layer over time.
 
@@ -235,7 +235,7 @@ flowchart TD
 
 #### Explanation
 
-The Activity Diagram illustrates the end-to-end flow of a typical buyer transaction within the UniTrade platform, from the moment the app is opened to the final post-transaction rating submission.
+The Activity Diagram illustrates the end-to-end flow of a typical buyer transaction within the UniSooq platform, from the moment the app is opened to the final post-transaction rating submission.
 
 The flow begins when the user **Opens the App** and either searches for a specific item using keywords and filters or browses through the category-based listing feed. Once a suitable item is identified, the user proceeds to **View Listing Details**, where they can examine photos, the full description, the seller's rating, and the asking price.
 
@@ -298,7 +298,7 @@ classDiagram
 
 #### Explanation
 
-The Class Diagram defines the four core domain entities of the UniTrade application and the relationships between them. This diagram serves as the blueprint for both the application's data models and the Firestore document schema.
+The Class Diagram defines the four core domain entities of the UniSooq application and the relationships between them. This diagram serves as the blueprint for both the application's data models and the Firestore document schema.
 
 The **User** class is the central entity of the system. It holds identity attributes — a unique `UUID id`, a display `name`, and the `universityEmail` which doubles as the authentication identifier and domain restriction enforcer. The `passwordHash` field stores the securely hashed credential (managed by Firebase Auth, never stored in plain text). The `rating` float aggregates the average score from all post-transaction reviews the user has received. The three methods — `register()`, `login()`, and `updateProfile()` — represent the core identity management operations.
 
@@ -357,7 +357,7 @@ erDiagram
 
 #### Explanation
 
-The Entity-Relationship Diagram defines the relational data model that underpins the UniTrade system. While the actual implementation uses Cloud Firestore (a NoSQL document database), the ER diagram provides a normalized conceptual view of how the data entities relate to one another.
+The Entity-Relationship Diagram defines the relational data model that underpins the UniSooq system. While the actual implementation uses Cloud Firestore (a NoSQL document database), the ER diagram provides a normalized conceptual view of how the data entities relate to one another.
 
 The **USER** entity is the root of the schema. Each user is uniquely identified by a UUID primary key (`id`) and a university email address (`email`), which carries a unique constraint to prevent duplicate accounts. The `password_hash` field is managed externally by Firebase Authentication and represents the securely stored credential. The `rating` float is a computed aggregate from all received reviews, and `created_at` records the account creation timestamp.
 

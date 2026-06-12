@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
-/// Central text styles for UniTrade
+/// Central text styles for UniSooq
 class AppTextStyles {
   AppTextStyles._();
 

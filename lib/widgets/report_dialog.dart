@@ -102,7 +102,7 @@ class _ReportSheetState extends State<_ReportSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Report submitted. Thank you for keeping UniTrade safe.',
+              'Report submitted. Thank you for keeping UniSooq safe.',
             ),
             backgroundColor: AppColors.success,
           ),
@@ -220,7 +220,6 @@ class _ReportSheetState extends State<_ReportSheet> {
                 fontSize: 13,
               ),
               filled: true,
-              fillColor: AppColors.background,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14,
                 vertical: 10,

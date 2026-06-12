@@ -21,7 +21,7 @@ class LoadingPlaceholder extends StatelessWidget {
       height: height,
       width: width,
       decoration: BoxDecoration(
-        color: AppColors.divider,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
     );
@@ -156,11 +156,12 @@ class PremiumIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Material(
-          color: AppColors.surface,
+          color: cs.surface,
           borderRadius: BorderRadius.circular(16),
           elevation: 0,
           child: InkWell(
@@ -171,7 +172,7 @@ class PremiumIconButton extends StatelessWidget {
               child: SizedBox(
                 width: 44,
                 height: 44,
-                child: Icon(icon, color: AppColors.textPrimary, size: 22),
+                child: Icon(icon, color: cs.onSurface, size: 22),
               ),
             ),
           ),
@@ -218,14 +219,15 @@ class PremiumSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       height: 54,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadow.withValues(alpha: 0.7),
+            color: Colors.black.withValues(alpha: 0.12),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -233,10 +235,10 @@ class PremiumSearchField extends StatelessWidget {
       ),
       child: TextField(
         onChanged: onChanged,
-        style: AppTextStyles.bodyLarge,
+        style: TextStyle(color: cs.onSurface, fontSize: 16),
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: AppTextStyles.bodyMedium,
+          hintStyle: TextStyle(color: cs.onSurfaceVariant, fontSize: 14),
           prefixIcon: const Icon(
             Icons.search_rounded,
             color: AppColors.primary,
@@ -244,7 +246,7 @@ class PremiumSearchField extends StatelessWidget {
           suffixIcon: IconButton(
             tooltip: 'Filters',
             onPressed: onFilterTap,
-            icon: const Icon(Icons.tune_rounded, color: AppColors.textPrimary),
+            icon: Icon(Icons.tune_rounded, color: cs.onSurface),
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 16),
@@ -269,6 +271,7 @@ class PremiumSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Row(
       children: [
         Expanded(
@@ -276,7 +279,7 @@ class PremiumSectionHeader extends StatelessWidget {
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.sectionTitle,
+            style: AppTextStyles.sectionTitle.copyWith(color: cs.onSurface),
           ),
         ),
         if (actionLabel != null)
@@ -306,6 +309,7 @@ class CategoryBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return SizedBox(
       width: 78,
       child: InkWell(
@@ -331,7 +335,7 @@ class CategoryBadge extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               style: AppTextStyles.metadata.copyWith(
-                color: AppColors.textPrimary,
+                color: cs.onSurface,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -361,6 +365,7 @@ class PremiumEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(28),
       child: Column(
@@ -386,13 +391,15 @@ class PremiumEmptyState extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: AppTextStyles.heading3,
+            style: AppTextStyles.heading3.copyWith(color: cs.onSurface),
           ),
           const SizedBox(height: 8),
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: AppTextStyles.bodyMedium,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: cs.onSurfaceVariant,
+            ),
           ),
           if (action != null) ...[const SizedBox(height: 22), action!],
         ],

@@ -93,13 +93,14 @@ class UserModel {
       isVerified: json['isVerified'] ?? false,
       rating: (json['rating'] ?? 0.0).toDouble(),
       reviewCount: json['reviewCount'] ?? 0,
-      createdAt: (json['createdAt'] as Timestamp).toDate(),
+      // Null-safe: some legacy or manually created documents may omit createdAt.
+      createdAt: (json['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       role: json['role'] ?? 'user',
       isSubscribed: json['isSubscribed'] as bool? ?? false,
-      subscriptionExpiresAt: (json['subscriptionExpiresAt'] as Timestamp?)
-          ?.toDate(),
-      subscriptionActivatedAt: (json['subscriptionActivatedAt'] as Timestamp?)
-          ?.toDate(),
+      subscriptionExpiresAt:
+          (json['subscriptionExpiresAt'] as Timestamp?)?.toDate(),
+      subscriptionActivatedAt:
+          (json['subscriptionActivatedAt'] as Timestamp?)?.toDate(),
       favoriteProductIds: List<String>.from(
         (json['favoriteProductIds'] as List?) ?? const <String>[],
       ),

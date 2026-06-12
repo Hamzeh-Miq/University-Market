@@ -88,18 +88,23 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     try {
       // Simulate network delay
       await Future<void>.delayed(const Duration(milliseconds: 2800));
+
+      // Ensure the Firestore user document exists before writing subscription
+      // fields (it may not exist if the user bypassed email verification).
+      await ref.read(authServiceProvider).ensureVerifiedUserProfileExists();
       await ref.read(userServiceProvider).activateSubscription(user.uid);
 
       if (mounted) {
         setState(() => _step = _PaymentStep.success);
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Subscription activation error: $e');
       if (mounted) {
         setState(() => _step = _PaymentStep.form);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'We could not activate your subscription. Please try again.',
+              e.toString().replaceAll('Exception: ', ''),
             ),
           ),
         );

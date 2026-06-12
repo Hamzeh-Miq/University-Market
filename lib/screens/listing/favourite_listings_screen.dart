@@ -68,14 +68,17 @@ class FavouriteListingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final productsAsync = ref.watch(favoriteProductsProvider);
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: cs.surface,
         elevation: 0.5,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        title: const Text('Favourite Posts', style: AppTextStyles.heading3),
+        iconTheme: IconThemeData(color: cs.onSurface),
+        title: Text(
+          'Favourite Posts',
+          style: AppTextStyles.heading3.copyWith(color: cs.onSurface),
+        ),
       ),
       body: productsAsync.when(
         loading: () => const _FavouriteLoadingList(),
@@ -150,6 +153,7 @@ class _FavouriteListingTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(authStateProvider).value;
     final isOwner = product.sellerId == currentUser?.uid;
+    final cs = Theme.of(context).colorScheme;
 
     return InkWell(
       onTap: onTap,
@@ -157,12 +161,12 @@ class _FavouriteListingTile extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: cs.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.55)),
+          border: Border.all(color: cs.outline.withValues(alpha: 0.45)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
@@ -184,6 +188,7 @@ class _FavouriteListingTile extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: AppTextStyles.labelLarge.copyWith(
                           fontWeight: FontWeight.w700,
+                          color: cs.onSurface,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -192,7 +197,7 @@ class _FavouriteListingTile extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -282,6 +287,7 @@ class _FavouriteLoadingList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: 5,
@@ -289,7 +295,7 @@ class _FavouriteLoadingList extends StatelessWidget {
       itemBuilder: (_, __) => Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: cs.surface,
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Row(

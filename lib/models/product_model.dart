@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../constants/product_status.dart';
 
-/// Data model for a product listing in the UniTrade marketplace.
+/// Data model for a product listing in the UniSooq marketplace.
 class ProductModel {
   final String productId;
   final String sellerId;
@@ -69,7 +69,7 @@ class ProductModel {
       status: ProductStatus.normalize(
         json['status'] ?? ProductStatus.published,
       ),
-      createdAt: (json['createdAt'] as Timestamp).toDate(),
+      createdAt: (json['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       sellerUniversity: json['sellerUniversity'] as String?,
       soldAt: (json['soldAt'] as Timestamp?)?.toDate(),
     );

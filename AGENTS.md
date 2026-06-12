@@ -7,9 +7,9 @@
 
 ## 1. Project Overview
 
-**University Market** (internal codename: **UniTrade**) is a Flutter mobile application that serves as a peer-to-peer campus marketplace. It allows university students to buy, sell, and trade items (textbooks, electronics, clothing, etc.) exclusively within their university community.
+**University Market** (internal codename: **UniSooq**) is a Flutter mobile application that serves as a peer-to-peer campus marketplace. It allows university students to buy, sell, and trade items (textbooks, electronics, clothing, etc.) exclusively within their university community.
 
-- **App Name:** UniTrade
+- **App Name:** UniSooq
 - **Package ID:** `com.example.university_market`
 - **Firebase Project:** `university-market-2b9d7`
 - **Target Platforms:** Android (primary), iOS, Web

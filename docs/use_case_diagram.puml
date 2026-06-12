@@ -1,0 +1,80 @@
+@startuml UniSooq_UseCaseDiagram
+
+left to right direction
+skinparam shadowing false
+skinparam backgroundColor #FAF7F2
+skinparam defaultFontName Inter
+skinparam ArrowColor #2F5D62
+skinparam ArrowThickness 1.4
+skinparam linetype ortho
+
+skinparam actor {
+  BackgroundColor #E6F2F2
+  BorderColor #2F5D62
+  FontColor #1F2A37
+  FontStyle bold
+}
+
+skinparam rectangle {
+  BackgroundColor #FFFDF8
+  BorderColor #2F5D62
+  FontColor #1F2A37
+  RoundCorner 18
+}
+
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #5C8D89
+  FontColor #1F2A37
+}
+
+title <size:20><b>UniSooq Use Case Diagram</b></size>
+
+actor Guest
+actor Student
+actor Admin
+
+rectangle "UniSooq System" {
+  usecase "Register / Log in" as UC_Auth
+  usecase "Verify Email" as UC_Verify
+  usecase "Browse Listings" as UC_Browse
+  usecase "View Item Details" as UC_View
+  usecase "Post Item for Sale" as UC_Post
+  usecase "Manage My Listings" as UC_ManageListings
+  usecase "Chat with Seller" as UC_Chat
+  usecase "Manage Watchlist" as UC_Watchlist
+  usecase "Manage Profile" as UC_Profile
+  usecase "Leave Review" as UC_Review
+  usecase "Review Listings" as UC_ReviewListings
+  usecase "Manage Reports" as UC_ManageReports
+}
+
+Guest --> UC_Auth
+Guest --> UC_Verify
+Guest --> UC_Browse
+Guest --> UC_View
+
+Student --> UC_Browse
+Student --> UC_View
+Student --> UC_Post
+Student --> UC_ManageListings
+Student --> UC_Chat
+Student --> UC_Watchlist
+Student --> UC_Profile
+Student --> UC_Review
+
+Admin --> UC_ReviewListings
+Admin --> UC_ManageReports
+Admin --> UC_Profile
+
+UC_Post .> UC_Verify : <<include>>
+UC_Chat .> UC_Verify : <<include>>
+UC_Review .> UC_View : <<extend>>
+UC_Watchlist .> UC_View : <<extend>>
+
+note bottom of UC_Verify
+  Only verified university students
+  can post items or send messages.
+end note
+
+@enduml

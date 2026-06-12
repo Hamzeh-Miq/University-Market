@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'constants/app_colors.dart';
@@ -212,12 +213,6 @@ class _GuardedRoute extends ConsumerWidget {
           return const _RouteRedirectScreen(routeName: AppRoutes.login);
         }
 
-        if (!firebaseUser.emailVerified) {
-          return const _RouteRedirectScreen(
-            routeName: AppRoutes.emailVerification,
-          );
-        }
-
         if (guard == _RouteGuard.verified) return child;
 
         return userAsync.when(
@@ -279,6 +274,180 @@ class _RouteLoadingScreen extends StatelessWidget {
     return const Scaffold(
       backgroundColor: AppColors.background,
       body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+    );
+  }
+}
+
+/// Shown inline inside [_GuardedRoute] when the user is signed in but their
+/// email is not yet verified.
+///
+/// Periodically calls [user.reload()] so that when the user clicks the
+/// verification link, the [authStateProvider] stream emits an updated user
+/// and [_GuardedRoute] automatically shows the real screen — no Navigator
+/// calls are made from this widget.
+class _InlineEmailVerificationWall extends ConsumerStatefulWidget {
+  const _InlineEmailVerificationWall();
+
+  @override
+  ConsumerState<_InlineEmailVerificationWall> createState() =>
+      _InlineEmailVerificationWallState();
+}
+
+class _InlineEmailVerificationWallState
+    extends ConsumerState<_InlineEmailVerificationWall> {
+  Timer? _timer;
+  bool _isSending = false;
+  String? _message;
+
+  @override
+  void initState() {
+    super.initState();
+    // Poll Firebase every 5 s; the stream drives navigation automatically.
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+      ref.read(authServiceProvider).reloadCurrentUser();
+    });
+    // Auto-navigate to home after 5 seconds regardless of verification.
+    Future.delayed(const Duration(seconds: 5), () {
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.home,
+        (_) => false,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _resend() async {
+    setState(() {
+      _isSending = true;
+      _message = null;
+    });
+    try {
+      await ref.read(authServiceProvider).resendVerificationEmail();
+      if (mounted) {
+        setState(() => _message = 'Verification email sent! Check your inbox.');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() =>
+            _message = e.toString().replaceAll('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = ref.watch(authStateProvider).value;
+    final email = user?.email ?? '';
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.mark_email_unread_outlined,
+                    size: 40,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Verify your email',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'We sent a verification link to\n$email\n\nClick the link in your inbox to continue.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                if (_message != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      _message!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _message!.contains('sent')
+                            ? AppColors.success
+                            : AppColors.error,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                FilledButton.icon(
+                  onPressed: _isSending ? null : _resend,
+                  icon: _isSending
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.send_outlined, size: 18),
+                  label: Text(_isSending ? 'Sending…' : 'Resend verification email'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () async {
+                    await ref.read(authServiceProvider).signOut();
+                    if (context.mounted) {
+                      Navigator.of(context).pushNamedAndRemoveUntil(
+                        AppRoutes.login,
+                        (_) => false,
+                      );
+                    }
+                  },
+                  child: const Text(
+                    'Sign out',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

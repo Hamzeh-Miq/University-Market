@@ -1,4 +1,4 @@
-/// Named route constants for UniTrade navigation.
+/// Named route constants for UniSooq navigation.
 class AppRoutes {
   AppRoutes._();
 

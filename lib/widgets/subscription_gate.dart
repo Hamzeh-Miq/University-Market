@@ -130,7 +130,7 @@ class _FullPageGate extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Unlock $featureLabel and everything UniTrade has to offer with a ${SubscriptionConstants.subscriptionDurationLabel} subscription.',
+              'Unlock $featureLabel and everything UniSooq has to offer with a ${SubscriptionConstants.subscriptionDurationLabel} subscription.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 15,
@@ -219,7 +219,7 @@ class _SubscriptionSheet extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text(
-            'UniTrade Annual Pass',
+            'UniSooq Annual Pass',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,

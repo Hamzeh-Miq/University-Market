@@ -15,7 +15,6 @@ class AppDrawer extends ConsumerWidget {
     final isAdmin = userModel?.role == 'admin';
 
     return Drawer(
-      backgroundColor: AppColors.background,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
@@ -52,7 +51,7 @@ class AppDrawer extends ConsumerWidget {
                       child: Text(
                         userModel?.fullName.isNotEmpty == true
                             ? userModel!.fullName
-                            : 'UniTrade',
+                            : 'UniSooq',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTextStyles.onPrimaryTitle,

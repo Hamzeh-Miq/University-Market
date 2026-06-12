@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/product_model.dart';
 import '../services/product_service.dart';
+import '../services/storage_service.dart';
 import 'watchlist_provider.dart';
 
 // ── Service provider ──────────────────────────────────────────────────────────
@@ -8,6 +9,11 @@ import 'watchlist_provider.dart';
 /// Exposes [ProductService] as a singleton.
 final productServiceProvider = Provider<ProductService>((ref) {
   return ProductService();
+});
+
+/// Exposes [StorageService] as a singleton.
+final storageServiceProvider = Provider<StorageService>((ref) {
+  return StorageService();
 });
 
 // ── Sort option ───────────────────────────────────────────────────────────────
@@ -45,16 +51,28 @@ class ProductFilter {
     this.sortOption = ProductSortOption.newest,
   });
 
+  /// Creates a copy with selected fields overridden.
+  ///
+  /// Pass [_clear] as the value for any nullable field to explicitly clear it
+  /// back to `null` (e.g. `copyWith(category: ProductFilter.clear)`).
+  static const Object clear = Object();
+
   ProductFilter copyWith({
-    String? category,
-    String? courseCode,
-    double? maxPrice,
+    Object? category = clear,
+    Object? courseCode = clear,
+    Object? maxPrice = clear,
     ProductSortOption? sortOption,
   }) {
     return ProductFilter(
-      category: category ?? this.category,
-      courseCode: courseCode ?? this.courseCode,
-      maxPrice: maxPrice ?? this.maxPrice,
+      category: identical(category, clear)
+          ? this.category
+          : category as String?,
+      courseCode: identical(courseCode, clear)
+          ? this.courseCode
+          : courseCode as String?,
+      maxPrice: identical(maxPrice, clear)
+          ? this.maxPrice
+          : maxPrice as double?,
       sortOption: sortOption ?? this.sortOption,
     );
   }

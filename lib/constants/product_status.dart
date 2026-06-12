@@ -27,6 +27,9 @@ class ProductStatus {
   /// Legacy value used by older rejected documents.
   static const String legacyRejected = 'Rejected';
 
+  /// Canonical value for admin-rejected listings.
+  static const String rejected = 'rejected';
+
   /// Status values that should appear in public listing queries.
   static const List<String> publicStatuses = [published, legacyAvailable];
 
@@ -45,6 +48,8 @@ class ProductStatus {
         return published;
       case legacySold:
         return sold;
+      case legacyRejected:
+        return rejected;
       default:
         return status;
     }
@@ -59,7 +64,7 @@ class ProductStatus {
         return 'Published';
       case sold:
         return 'Sold';
-      case legacyRejected:
+      case rejected:
         return 'Rejected';
       default:
         return 'Unknown';
@@ -75,7 +80,7 @@ class ProductStatus {
         return AppColors.success;
       case sold:
         return AppColors.primary;
-      case legacyRejected:
+      case rejected:
         return AppColors.error;
       default:
         return AppColors.textSecondary;
@@ -90,4 +95,7 @@ class ProductStatus {
 
   /// Whether this status has been marked sold.
   static bool isSold(String status) => normalize(status) == sold;
+
+  /// Whether this status has been rejected by an admin.
+  static bool isRejected(String status) => normalize(status) == rejected;
 }

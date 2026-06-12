@@ -21,7 +21,7 @@
 ```dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Represents a UniTrade user profile document stored in Firestore.
+/// Represents a UniSooq user profile document stored in Firestore.
 class UserModel {
   final String uid;
   final String email;
@@ -98,7 +98,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
 import 'user_service.dart';
 
-/// Handles Firebase Authentication operations for UniTrade.
+/// Handles Firebase Authentication operations for UniSooq.
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final UserService _userService = UserService();

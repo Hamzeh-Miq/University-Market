@@ -35,7 +35,6 @@ class HomeScreen extends ConsumerWidget {
     final favouriteIds = ref.watch(watchlistProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       bottomNavigationBar: const AppBottomNav(currentRoute: AppRoutes.home),
       body: SafeArea(
         child: RefreshIndicator(
@@ -163,27 +162,12 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: hasAccess
-            ? () => Navigator.of(context).pushNamed(AppRoutes.addListing)
-            : () => _showSubscriptionGate(context),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        child: Icon(
-          hasAccess ? Icons.add_a_photo_outlined : Icons.lock_rounded,
-        ),
-      ),
-    );
-  }
-
-  void _showSubscriptionGate(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const SubscriptionGate(
-        featureLabel: 'posting listings',
-        child: SizedBox.shrink(),
+        onPressed: () => Navigator.of(context).pushNamed(AppRoutes.settings),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: AppColors.primary,
+        elevation: 3,
+        tooltip: 'Settings',
+        child: const Icon(Icons.settings_rounded),
       ),
     );
   }
@@ -197,19 +181,25 @@ class _HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Row(
       children: [
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('UniTrade', style: AppTextStyles.appTitle),
+              Text(
+                'UniSooq',
+                style: AppTextStyles.appTitle.copyWith(color: cs.onSurface),
+              ),
               const SizedBox(height: 5),
               Text(
                 'Premium finds from students around campus',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.bodyMedium,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -415,13 +405,16 @@ class _StaticDealCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: AppColors.softBlueGradient,
+        color: isDark ? cs.surfaceContainerLow : null,
+        gradient: isDark ? null : AppColors.softBlueGradient,
         borderRadius: BorderRadius.circular(AppColors.radius),
-        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+        border: Border.all(color: cs.outline.withValues(alpha: 0.35)),
       ),
       child: Row(
         children: [
@@ -430,13 +423,18 @@ class _StaticDealCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Fast campus deals', style: AppTextStyles.heading3),
+                Text(
+                  'Fast campus deals',
+                  style: AppTextStyles.heading3.copyWith(color: cs.onSurface),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'Discounted listings will appear here as students add offers.',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.bodyMedium,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: cs.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -460,6 +458,8 @@ class _NewListingsBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 380;
@@ -469,9 +469,10 @@ class _NewListingsBanner extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 156),
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            gradient: AppColors.softBlueGradient,
+            color: isDark ? cs.surfaceContainerLow : null,
+            gradient: isDark ? null : AppColors.softBlueGradient,
             borderRadius: BorderRadius.circular(AppColors.radius),
-            border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+            border: Border.all(color: cs.outline.withValues(alpha: 0.35)),
           ),
           child: Stack(
             children: [
@@ -490,14 +491,19 @@ class _NewListingsBanner extends StatelessWidget {
                       'Find Newly Listed Items',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.heading3,
+                      style: AppTextStyles.heading3.copyWith(
+                        color: cs.onSurface,
+                      ),
                     ),
                     const SizedBox(height: 7),
                     Text(
                       'Fresh posts from your favourite departments, updated as students list.',
                       maxLines: isCompact ? 2 : 3,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.bodyMedium.copyWith(height: 1.28),
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        height: 1.28,
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Align(
@@ -583,6 +589,7 @@ class _MiniProductTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Positioned(
       left: left,
       top: top,
@@ -592,10 +599,10 @@ class _MiniProductTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white, width: 3),
+          border: Border.all(color: cs.surface, width: 3),
           boxShadow: [
             BoxShadow(
-              color: AppColors.shadow,
+              color: Colors.black.withValues(alpha: 0.12),
               blurRadius: 14,
               offset: const Offset(0, 8),
             ),

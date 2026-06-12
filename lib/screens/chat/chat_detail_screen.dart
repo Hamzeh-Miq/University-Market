@@ -215,10 +215,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         final canViewOtherProfiles = ref.watch(canViewOtherProfilesProvider);
 
         return Scaffold(
-          backgroundColor: AppColors.background,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
-            foregroundColor: AppColors.textPrimary,
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
             elevation: 0,
             // Tappable title → other user's profile
             title: GestureDetector(
@@ -236,29 +235,35 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                         children: [
                           Text(
                             info['name'] ?? 'Chat',
-                            style: AppTextStyles.heading3,
+                            style: AppTextStyles.heading3.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                           ),
                           if (isAdmin && (info['email']?.isNotEmpty ?? false))
                             Text(
                               '${info['email']} · ${info['phone'] ?? ''}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
-                                color: AppColors.textSecondary,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                             )
                           else if (productTitle.isNotEmpty)
                             Text(
                               productTitle,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textSecondary,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                             ),
                         ],
                       ),
                     ),
                     if (otherUid.isNotEmpty && canViewOtherProfiles)
-                      const Icon(
+                      Icon(
                         Icons.chevron_right,
                         color: AppColors.textHint,
                         size: 18,
@@ -377,6 +382,7 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onLongPress: onLongPress,
       child: Align(
@@ -388,7 +394,7 @@ class _MessageBubble extends StatelessWidget {
             maxWidth: MediaQuery.of(context).size.width * 0.72,
           ),
           decoration: BoxDecoration(
-            color: isMe ? AppColors.primary : AppColors.surface,
+            color: isMe ? AppColors.primary : cs.surfaceContainerHigh,
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(18),
               topRight: const Radius.circular(18),
@@ -404,8 +410,8 @@ class _MessageBubble extends StatelessWidget {
             ],
             border: isMe
                 ? null
-                : const Border.fromBorderSide(
-                    BorderSide(color: AppColors.border),
+                : Border.fromBorderSide(
+                    BorderSide(color: cs.outline.withValues(alpha: 0.4)),
                   ),
           ),
           child: Column(
@@ -416,7 +422,7 @@ class _MessageBubble extends StatelessWidget {
               Text(
                 text,
                 style: TextStyle(
-                  color: isMe ? Colors.white : AppColors.textPrimary,
+                  color: isMe ? Colors.white : cs.onSurface,
                   fontSize: 14,
                   height: 1.4,
                 ),
@@ -428,7 +434,7 @@ class _MessageBubble extends StatelessWidget {
                 style: TextStyle(
                   color: isMe
                       ? Colors.white.withValues(alpha: 0.65)
-                      : AppColors.textHint,
+                      : cs.onSurfaceVariant,
                   fontSize: 10,
                 ),
               ),
@@ -450,6 +456,7 @@ class _InputBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: EdgeInsets.fromLTRB(
         12,
@@ -457,20 +464,23 @@ class _InputBar extends StatelessWidget {
         12,
         MediaQuery.of(context).padding.bottom + 8,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        border: Border(
+          top: BorderSide(color: cs.outline.withValues(alpha: 0.35)),
+        ),
       ),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: controller,
+              style: TextStyle(color: cs.onSurface),
               decoration: InputDecoration(
                 hintText: 'Type a message...',
-                hintStyle: const TextStyle(color: AppColors.textHint),
+                hintStyle: TextStyle(color: cs.onSurfaceVariant),
                 filled: true,
-                fillColor: AppColors.background,
+                fillColor: cs.surfaceContainerHighest,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 10,
@@ -492,7 +502,7 @@ class _InputBar extends StatelessWidget {
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: onSend != null ? AppColors.primary : AppColors.textHint,
+                color: onSend != null ? AppColors.primary : cs.onSurfaceVariant,
                 shape: BoxShape.circle,
               ),
               child: const Icon(

@@ -8,7 +8,6 @@ import '../../constants/app_colors.dart';
 import '../../data/dummy_categories.dart';
 import '../../models/product_model.dart';
 import '../../providers/product_provider.dart';
-import '../../services/storage_service.dart';
 
 /// Screen that lets a post owner edit their listing.
 ///
@@ -87,28 +86,7 @@ class _EditListingScreenState extends ConsumerState<EditListingScreen>
       labelText: label,
       hintText: hint,
       prefixIcon: Icon(icon, color: AppColors.primary),
-      filled: true,
-      fillColor: AppColors.background,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.border),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.error),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.error, width: 2),
-      ),
+      // All fill/border styles come from InputDecorationTheme in main.dart
     );
   }
 
@@ -199,7 +177,7 @@ class _EditListingScreenState extends ConsumerState<EditListingScreen>
       // Upload any newly picked images
       final List<String> allUrls = List<String>.from(_existingImageUrls);
       if (_newImages.isNotEmpty) {
-        final storageService = StorageService();
+        final storageService = ref.read(storageServiceProvider);
         for (final file in _newImages) {
           final url = await storageService.compressAndUploadImage(file);
           allUrls.add(url);
@@ -257,22 +235,23 @@ class _EditListingScreenState extends ConsumerState<EditListingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        title: const Text(
+        iconTheme: IconThemeData(
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+        title: Text(
           'Edit Listing',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSecondary,
+          unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
           indicatorColor: AppColors.primary,
           labelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
@@ -383,32 +362,34 @@ class _DiscountTab extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.sell_outlined,
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     size: 20,
                   ),
                   const SizedBox(width: 10),
                   Text(
                     'Original Price',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 14,
                     ),
                   ),
                   const Spacer(),
                   Text(
                     'JD ${product.price.toStringAsFixed(2)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -433,34 +414,7 @@ class _DiscountTab extends StatelessWidget {
                   color: AppColors.primary,
                 ),
                 suffixText: 'JD',
-                filled: true,
-                fillColor: AppColors.background,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(
-                    color: AppColors.primary,
-                    width: 2,
-                  ),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: AppColors.error),
-                ),
-                focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(
-                    color: AppColors.error,
-                    width: 2,
-                  ),
-                ),
+                // All fill/border styles come from InputDecorationTheme in main.dart
               ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) {

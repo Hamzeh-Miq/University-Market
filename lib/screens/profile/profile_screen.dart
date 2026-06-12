@@ -96,10 +96,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final isAdmin = ref.watch(isAdminProvider);
 
     if (_loadingProfile) {
-      return const Scaffold(
-        backgroundColor: AppColors.background,
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final initials = _userModel?.fullName.isNotEmpty == true
@@ -112,7 +109,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         : (firebaseUser?.email?[0].toUpperCase() ?? '?');
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       bottomNavigationBar: const AppBottomNav(currentRoute: AppRoutes.profile),
       body: CustomScrollView(
         slivers: [
@@ -293,11 +289,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   // ── My Listings ──────────────────────────────────
                   const Text(
                     'My Listings',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
 
@@ -353,16 +345,18 @@ class _MyListingsSection extends ConsumerWidget {
           return Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: const Border.fromBorderSide(
-                BorderSide(color: AppColors.border),
+              border: Border.fromBorderSide(
+                BorderSide(color: Theme.of(context).colorScheme.outline),
               ),
             ),
-            child: const Center(
+            child: Center(
               child: Text(
                 "You haven't posted any listings yet.",
-                style: TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           );
@@ -390,10 +384,10 @@ class _MyListingTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(14),
-          border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.border),
+          border: Border.fromBorderSide(
+            BorderSide(color: Theme.of(context).colorScheme.outline),
           ),
         ),
         child: Row(
@@ -420,9 +414,9 @@ class _MyListingTile extends StatelessWidget {
                     product.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -479,10 +473,10 @@ class _StatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(14),
-          border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.border),
+          border: Border.fromBorderSide(
+            BorderSide(color: Theme.of(context).colorScheme.outline),
           ),
         ),
         child: Column(
@@ -502,8 +496,8 @@ class _StatCard extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 11,
               ),
             ),
@@ -522,14 +516,13 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
-        border: const Border.fromBorderSide(
-          BorderSide(color: AppColors.border),
-        ),
+        border: Border.fromBorderSide(BorderSide(color: cs.outline)),
       ),
       child: Column(
         children: items
@@ -548,8 +541,8 @@ class _InfoCard extends StatelessWidget {
                             row.label,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.textHint,
+                            style: TextStyle(
+                              color: cs.onSurfaceVariant,
                               fontSize: 11,
                             ),
                           ),
@@ -557,8 +550,8 @@ class _InfoCard extends StatelessWidget {
                             row.value,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
+                            style: TextStyle(
+                              color: cs.onSurface,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
@@ -701,7 +694,7 @@ class _AdminApprovalsSection extends ConsumerWidget {
               return Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: AppColors.border),
                 ),
@@ -1551,7 +1544,6 @@ class _AdminSubscriptionSectionState
                     color: AppColors.primary,
                   ),
                   filled: true,
-                  fillColor: Colors.white,
                   contentPadding: const EdgeInsets.symmetric(
                     vertical: 12,
                     horizontal: 16,

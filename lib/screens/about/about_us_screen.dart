@@ -7,7 +7,7 @@ import '../../data/dummy_categories.dart';
 import '../../providers/product_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 
-/// Static informational page about UniTrade and the university.
+/// Static informational page about UniSooq and the university.
 class AboutUsScreen extends ConsumerWidget {
   const AboutUsScreen({super.key});
 
@@ -16,7 +16,6 @@ class AboutUsScreen extends ConsumerWidget {
     final soldStatsAsync = ref.watch(soldStatisticsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       bottomNavigationBar: const AppBottomNav(currentRoute: AppRoutes.aboutUs),
       body: CustomScrollView(
         slivers: [
@@ -29,7 +28,7 @@ class AboutUsScreen extends ConsumerWidget {
             iconTheme: const IconThemeData(color: Colors.white),
             flexibleSpace: FlexibleSpaceBar(
               title: const Text(
-                'About UniTrade',
+                'About UniSooq',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -61,7 +60,7 @@ class AboutUsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'University of Jordan',
+                      'Applied Science Private University',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 15,
@@ -84,7 +83,7 @@ class AboutUsScreen extends ConsumerWidget {
                     icon: Icons.flag_rounded,
                     title: 'Our Mission',
                     content:
-                        'UniTrade is the exclusive peer-to-peer campus marketplace for University of Jordan students. '
+                        'UniSooq is the exclusive peer-to-peer campus marketplace for Applied Science Private University students. '
                         'Buy, sell, and trade textbooks, electronics, clothing, and more — safely within your university community.',
                   ),
                   const SizedBox(height: 16),
@@ -162,9 +161,9 @@ class AboutUsScreen extends ConsumerWidget {
                     icon: Icons.contact_support_rounded,
                     title: 'Contact & Support',
                     content:
-                        'Email: support@unitrade.edu.jo\n'
-                        'Instagram: @unitrade.jo\n'
-                        'Location: University of Jordan, Amman, Jordan',
+                        'Email: support@unisooq.edu.jo\n'
+                        'Instagram: @unisooq.jo\n'
+                        'Location: Applied Science Private University, Al Arab Street, Amman, Jordan',
                   ),
                   const SizedBox(height: 16),
 
@@ -174,7 +173,7 @@ class AboutUsScreen extends ConsumerWidget {
                   // ── Version ────────────────────────────────────────
                   Center(
                     child: Text(
-                      'UniTrade v1.0.0 • © 2025 University of Jordan',
+                      'UniSooq v1.0.0 • © 2025 Applied Science Private University',
                       style: const TextStyle(
                         color: AppColors.textHint,
                         fontSize: 12,
@@ -280,7 +279,7 @@ class _SoldRankingSection extends StatelessWidget {
       ),
       data: (stats) {
         final summary =
-            'The UniTrade community has sold ${stats.totalSold} item(s). '
+            'The UniSooq community has sold ${stats.totalSold} item(s). '
             'Today: ${stats.soldToday}, this month: ${stats.soldThisMonth}, '
             'this year: ${stats.soldThisYear}.\n\n'
             'Daily ranking: ${_formatRanking(stats.dailyRanking)}\n'

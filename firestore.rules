@@ -35,7 +35,12 @@ service cloud.firestore {
       // Owner can update their own profile, but NOT sensitive fields
       allow update: if isAuthenticated() && request.auth.uid == userId
                     && !request.resource.data.diff(resource.data).affectedKeys()
-                         .hasAny(['role', 'isSubscribed', 'subscriptionExpiresAt', 'subscriptionActivatedAt', 'rating', 'reviewCount', 'email', 'createdAt']);
+                         .hasAny(['role', 'rating', 'reviewCount', 'email', 'createdAt']);
+
+      // Owner can activate/update their own subscription fields only
+      allow update: if isAuthenticated() && request.auth.uid == userId
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['isSubscribed', 'subscriptionExpiresAt', 'subscriptionActivatedAt']);
 
       // Any authenticated user can update only the rating/reviewCount fields (needed for reviews)
       allow update: if isAuthenticated()
@@ -49,12 +54,12 @@ service cloud.firestore {
     // PRODUCTS
     match /products/{productId} {
       allow read: if isAuthenticated();
-      // Only verified students can create listings; initial status must be Pending
-      allow create: if isVerifiedStudent()
+      // Only authenticated users can create listings; initial status must be Pending
+      allow create: if isAuthenticated()
                     && request.resource.data.sellerId == request.auth.uid
                     && request.resource.data.status == 'Pending';
       // The seller can update/delete their own listing
-      allow update, delete: if isVerifiedStudent() && resource.data.sellerId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.sellerId == request.auth.uid;
       // Admins can update (approve/reject) or delete any listing
       allow update, delete: if isAdmin();
     }
@@ -85,9 +90,9 @@ service cloud.firestore {
                     && request.auth.uid == request.resource.data.reviewerId;
     }
 
-    // REPORTS — verified students can submit; only admins can read/update
+    // REPORTS — authenticated users can submit; only admins can read/update
     match /reports/{reportId} {
-      allow create: if isVerifiedStudent()
+      allow create: if isAuthenticated()
                     && request.resource.data.reporterId == request.auth.uid;
       allow read, update: if isAdmin();
     }

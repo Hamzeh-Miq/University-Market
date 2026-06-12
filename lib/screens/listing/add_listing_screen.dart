@@ -9,7 +9,6 @@ import '../../data/dummy_categories.dart';
 import '../../models/product_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
-import '../../services/storage_service.dart';
 import '../../widgets/subscription_gate.dart';
 
 /// Screen for posting a new product listing to the marketplace.
@@ -47,20 +46,7 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
       labelText: label,
       hintText: hint,
       prefixIcon: Icon(icon, color: AppColors.primary),
-      filled: true,
-      fillColor: AppColors.background,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.border),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
-      ),
+      // All fill/border styles come from InputDecorationTheme in main.dart
     );
   }
 
@@ -139,7 +125,7 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
     try {
       List<String> uploadedUrls = [];
       if (_selectedImages.isNotEmpty) {
-        final storageService = StorageService();
+        final storageService = ref.read(storageServiceProvider);
         for (final file in _selectedImages) {
           final url = await storageService.compressAndUploadImage(file);
           uploadedUrls.add(url);
@@ -198,18 +184,19 @@ class _AddListingScreenState extends ConsumerState<AddListingScreen> {
     final hasAccess = isSubscribed || isAdmin;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Post a Listing',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        iconTheme: IconThemeData(
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
       ),
       body: hasAccess
           ? SingleChildScrollView(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Central color palette for UniTrade
+/// Central color palette for UniSooq
 class AppColors {
   AppColors._();
 

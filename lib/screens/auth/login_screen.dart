@@ -70,14 +70,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     try {
       if (_isLogin) {
         final credential = await authService.signIn(_email, _password);
-        if (mounted) {
-          // Block access until email is verified
-          if (credential.user?.emailVerified == true) {
+        if (mounted && credential.user != null) {
+          // Ensure the Firestore profile document exists (creates it on first login).
+          await authService.ensureVerifiedUserProfileExists();
+          if (mounted) {
             Navigator.of(context).pushReplacementNamed(AppRoutes.home);
-          } else {
-            Navigator.of(
-              context,
-            ).pushReplacementNamed(AppRoutes.emailVerification);
           }
         }
       } else {

@@ -16,7 +16,6 @@ class SubscribedUsersScreen extends ConsumerWidget {
     final usersAsync = ref.watch(subscribedUsersProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.textPrimary,
@@ -150,12 +149,75 @@ class SubscribedUsersScreen extends ConsumerWidget {
 
 // ── Subscriber card ───────────────────────────────────────────────────────────
 
-class _SubscriberCard extends StatelessWidget {
+class _SubscriberCard extends ConsumerStatefulWidget {
   final UserModel user;
   const _SubscriberCard({required this.user});
 
   @override
+  ConsumerState<_SubscriberCard> createState() => _SubscriberCardState();
+}
+
+class _SubscriberCardState extends ConsumerState<_SubscriberCard> {
+  bool _revoking = false;
+
+  Future<void> _confirmRevoke() async {
+    final user = widget.user;
+    final displayName =
+        user.fullName.isNotEmpty ? user.fullName : user.email;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Revoke Subscription'),
+        content: Text(
+          'Are you sure you want to revoke the subscription for $displayName?\n\n'
+          'They will immediately lose access to premium features.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Revoke'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _revoking = true);
+    try {
+      await ref.read(userServiceProvider).revokeSubscription(user.uid);
+      // The subscribedUsersProvider stream auto-removes this user.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Subscription revoked for $displayName.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not revoke the subscription. Try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _revoking = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final user = widget.user;
     final expiry = user.subscriptionExpiresAt;
     final now = DateTime.now();
     final daysLeft = expiry != null ? expiry.difference(now).inDays : 0;
@@ -240,7 +302,7 @@ class _SubscriberCard extends StatelessWidget {
               ),
               const SizedBox(width: 10),
 
-              // Days left badge
+              // Days left badge + delete button
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -277,6 +339,31 @@ class _SubscriberCard extends StatelessWidget {
                   ),
                 ],
               ),
+
+              const SizedBox(width: 4),
+
+              // Revoke / delete button
+              _revoking
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.error,
+                        ),
+                      ),
+                    )
+                  : IconButton(
+                      tooltip: 'Revoke subscription',
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: AppColors.error,
+                        size: 22,
+                      ),
+                      onPressed: _confirmRevoke,
+                    ),
             ],
           ),
         ),

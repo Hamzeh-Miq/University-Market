@@ -29,7 +29,6 @@ class SellerProfileScreen extends ConsumerWidget {
 
     if (!canAccessProfile) {
       return const Scaffold(
-        backgroundColor: AppColors.background,
         body: SubscriptionGate(
           featureLabel: 'member profiles',
           fullPage: true,
@@ -43,10 +42,8 @@ class SellerProfileScreen extends ConsumerWidget {
     final reviewsAsync = ref.watch(reviewsProvider(uid));
 
     return sellerAsync.when(
-      loading: () => const Scaffold(
-        backgroundColor: AppColors.background,
-        body: Center(child: CircularProgressIndicator()),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, _) => Scaffold(
         appBar: AppBar(title: const Text('Profile')),
         body: const Center(child: Text('Failed to load profile.')),
@@ -77,7 +74,6 @@ class SellerProfileScreen extends ConsumerWidget {
                   'Anonymous User';
 
         return Scaffold(
-          backgroundColor: AppColors.background,
           body: CustomScrollView(
             slivers: [
               SliverAppBar(
@@ -533,9 +529,11 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -591,7 +589,6 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
                           'Share your experience with ${widget.revieweeName.split(' ').first}...',
                       hintStyle: const TextStyle(color: AppColors.textHint),
                       filled: true,
-                      fillColor: AppColors.background,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide.none,
@@ -685,9 +682,9 @@ class _ReviewTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -803,12 +800,13 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: cs.outline),
       ),
       child: Column(
         children: items
@@ -827,8 +825,8 @@ class _InfoCard extends StatelessWidget {
                             row.label,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.textHint,
+                            style: TextStyle(
+                              color: cs.onSurfaceVariant,
                               fontSize: 11,
                             ),
                           ),
@@ -836,8 +834,8 @@ class _InfoCard extends StatelessWidget {
                             row.value,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
+                            style: TextStyle(
+                              color: cs.onSurface,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
@@ -878,14 +876,16 @@ class _EmptyCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
       ),
       child: Center(
         child: Text(
           message,
-          style: const TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ),
     );
@@ -909,9 +909,9 @@ class _ListingTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: Theme.of(context).colorScheme.outline),
         ),
         child: Row(
           children: [

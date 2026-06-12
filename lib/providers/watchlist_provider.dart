@@ -44,7 +44,8 @@ final watchlistProvider = NotifierProvider<WatchlistNotifier, List<String>>(
   WatchlistNotifier.new,
 );
 
-/// Count of unique favourite product IDs for notification badges.
+/// Count of favourite product IDs for notification badges.
+/// The watchlist state is already deduplicated, so a direct length is sufficient.
 final favoriteCountProvider = Provider<int>((ref) {
-  return ref.watch(watchlistProvider).toSet().length;
+  return ref.watch(watchlistProvider).length;
 });

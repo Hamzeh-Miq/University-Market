@@ -1,7 +1,7 @@
 # Admin Approval & Contextual Controls Design
 
 ## Overview
-Introduce a role-based system to UniTrade where specific accounts (Admins) can review, approve, and manage marketplace listings and user accounts contextually without a separate dashboard.
+Introduce a role-based system to UniSooq where specific accounts (Admins) can review, approve, and manage marketplace listings and user accounts contextually without a separate dashboard.
 
 ## User Stories
 - As an Admin, I want to see a queue of pending listings so I can approve them for the marketplace.

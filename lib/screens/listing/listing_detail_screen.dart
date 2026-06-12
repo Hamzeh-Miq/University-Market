@@ -25,7 +25,6 @@ class ListingDetailScreen extends ConsumerWidget {
     final isSubscribed = ref.watch(hasActiveSubscriptionProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: productAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => const Center(
@@ -192,7 +191,9 @@ class ListingDetailScreen extends ConsumerWidget {
                                   (context, child, loadingProgress) {
                                     if (loadingProgress == null) return child;
                                     return Container(
-                                      color: AppColors.background,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
                                       child: const Center(
                                         child: CircularProgressIndicator(),
                                       ),
@@ -200,7 +201,9 @@ class ListingDetailScreen extends ConsumerWidget {
                                   },
                               errorBuilder: (context, error, stackTrace) =>
                                   Container(
-                                    color: AppColors.background,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
                                     child: const Center(
                                       child: Icon(
                                         Icons.error,
@@ -247,10 +250,10 @@ class ListingDetailScreen extends ConsumerWidget {
                       // ── Title ──────────────────────────────────────
                       Text(
                         product.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -317,14 +320,13 @@ class ListingDetailScreen extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         product.description,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 14,
                           height: 1.6,
                         ),
@@ -749,10 +751,10 @@ class _SellerCard extends ConsumerWidget {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.border),
+          border: Border.fromBorderSide(
+            BorderSide(color: Theme.of(context).colorScheme.outline),
           ),
         ),
         child: const SubscriptionGate(
@@ -772,10 +774,10 @@ class _SellerCard extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.border),
+          border: Border.fromBorderSide(
+            BorderSide(color: Theme.of(context).colorScheme.outline),
           ),
         ),
         child: sellerAsync.when(
@@ -793,7 +795,7 @@ class _SellerCard extends ConsumerWidget {
             children: [
               CircleAvatar(
                 radius: 26,
-                backgroundColor: AppColors.background,
+
                 child: Text(
                   '?',
                   style: TextStyle(
@@ -866,11 +868,14 @@ class _SellerCard extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          const Text(
-                            '· Tap to view profile & review',
-                            style: TextStyle(
-                              color: AppColors.textHint,
-                              fontSize: 11,
+                          const Flexible(
+                            child: Text(
+                              '· Tap to view profile & review',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppColors.textHint,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
                         ],

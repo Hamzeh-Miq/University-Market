@@ -16,20 +16,19 @@ class ChatListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(authStateProvider).value;
     final isAdmin = ref.watch(isAdminProvider);
+    final cs = Theme.of(context).colorScheme;
 
     if (currentUser == null) {
       return Scaffold(
-        backgroundColor: AppColors.background,
         appBar: AppBar(
-          title: const Text('Messages'),
-          backgroundColor: AppColors.surface,
-          foregroundColor: AppColors.textPrimary,
+          title: Text('Messages', style: TextStyle(color: cs.onSurface)),
+          backgroundColor: cs.surface,
           elevation: 0,
         ),
-        body: const Center(
+        body: Center(
           child: Text(
             'Please sign in to view messages.',
-            style: TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: cs.onSurfaceVariant),
           ),
         ),
       );
@@ -40,21 +39,19 @@ class ChatListScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Messages'),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        title: Text('Messages', style: TextStyle(color: cs.onSurface)),
+        backgroundColor: cs.surface,
         elevation: 0,
       ),
       body: conversationsAsync.when(
-        loading: _buildShimmer,
+        loading: () => _buildShimmer(context),
         error: (e, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Text(
               'Failed to load conversations.',
-              style: const TextStyle(color: AppColors.error),
+              style: TextStyle(color: AppColors.error),
               textAlign: TextAlign.center,
             ),
           ),
@@ -67,20 +64,25 @@ class ChatListScreen extends ConsumerWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.chat_bubble_outline,
                       size: 72,
-                      color: AppColors.textHint,
+                      color: cs.onSurfaceVariant,
                     ),
                     const SizedBox(height: 20),
                     Text(
                       'No conversations yet.',
-                      style: AppTextStyles.bodyMedium,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: cs.onSurface,
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Tap "Contact Seller" on a listing to start a conversation.',
-                      style: TextStyle(color: AppColors.textHint, fontSize: 13),
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -190,18 +192,19 @@ class ChatListScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildShimmer() {
+  Widget _buildShimmer(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: 5,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (_, __) => Shimmer.fromColors(
-        baseColor: Colors.grey.shade200,
-        highlightColor: Colors.grey.shade100,
+        baseColor: isDark ? const Color(0xFF21262D) : Colors.grey.shade200,
+        highlightColor: isDark ? const Color(0xFF30363D) : Colors.grey.shade100,
         child: Container(
           height: 80,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? const Color(0xFF21262D) : Colors.white,
             borderRadius: BorderRadius.circular(14),
           ),
         ),
@@ -228,13 +231,14 @@ class _ConversationTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userInfoAsync = ref.watch(otherUserInfoProvider((otherUid, isAdmin)));
     final canViewOtherProfiles = ref.watch(canViewOtherProfilesProvider);
+    final cs = Theme.of(context).colorScheme;
 
     return Card(
       elevation: 0,
-      color: AppColors.surface,
+      color: cs.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: cs.outline.withValues(alpha: 0.35)),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -287,7 +291,9 @@ class _ConversationTile extends ConsumerWidget {
                       // Name
                       Text(
                         info['name'] ?? 'Unknown',
-                        style: AppTextStyles.labelLarge,
+                        style: AppTextStyles.labelLarge.copyWith(
+                          color: cs.onSurface,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -296,9 +302,9 @@ class _ConversationTile extends ConsumerWidget {
                         const SizedBox(height: 2),
                         Text(
                           '${info['email']} · ${info['phone'] ?? ''}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: AppColors.textSecondary,
+                            color: cs.onSurfaceVariant,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -309,9 +315,9 @@ class _ConversationTile extends ConsumerWidget {
                         const SizedBox(height: 3),
                         Text(
                           '📦 ${conversation.productTitle}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.textHint,
+                            color: cs.onSurfaceVariant,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -322,7 +328,9 @@ class _ConversationTile extends ConsumerWidget {
                         const SizedBox(height: 2),
                         Text(
                           conversation.lastMessage,
-                          style: AppTextStyles.bodySmall,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -335,13 +343,13 @@ class _ConversationTile extends ConsumerWidget {
                       Container(
                         height: 14,
                         width: 120,
-                        color: AppColors.primaryLight,
+                        color: cs.surfaceContainerHighest,
                       ),
                       const SizedBox(height: 6),
                       Container(
                         height: 12,
                         width: 80,
-                        color: AppColors.divider,
+                        color: cs.surfaceContainerHighest,
                       ),
                     ],
                   ),
@@ -349,7 +357,7 @@ class _ConversationTile extends ConsumerWidget {
                 ),
               ),
 
-              const Icon(Icons.chevron_right, color: AppColors.textHint),
+              Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
             ],
           ),
         ),

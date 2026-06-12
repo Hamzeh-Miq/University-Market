@@ -11,24 +11,24 @@ class CampusSafetyGuideScreen extends StatelessWidget {
 
   static const List<_ExchangeZone> _zones = [
     _ExchangeZone(
-      title: 'Main Library Lounge',
+      title: 'ASPU Main Library',
       description:
-          'A visible, well-lit indoor space with steady student traffic and nearby staff desks.',
+          'A visible, well-lit academic space in the university\'s main library with regular student traffic and nearby staff support.',
       icon: Icons.local_library_rounded,
       tint: Color(0xFFEAF2FF),
     ),
     _ExchangeZone(
-      title: 'Student Union Cafeteria',
+      title: 'Book Shop and Cafeteria Area',
       description:
-          'Busy throughout the day, close to service counters, and easy to find for both students.',
+          'An easy-to-find service zone near the university\'s book shop and catering area, usually active during the day.',
       icon: Icons.restaurant_rounded,
       tint: Color(0xFFEAF8F4),
     ),
     _ExchangeZone(
-      title: 'Engineering Faculty Courtyard',
+      title: 'Parking Lots by the Main Campus Buildings',
       description:
-          'Open, high-traffic outdoor area with clear sightlines and frequent campus security rounds.',
-      icon: Icons.architecture_rounded,
+          'A practical pickup point for larger items during daylight hours, with open sightlines and steady movement around the campus facilities.',
+      icon: Icons.local_parking_rounded,
       tint: Color(0xFFFFF7E8),
     ),
   ];
@@ -44,7 +44,6 @@ class CampusSafetyGuideScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       bottomNavigationBar: const AppBottomNav(currentRoute: AppRoutes.aboutUs),
       body: SafeArea(
         child: CustomScrollView(
@@ -233,7 +232,7 @@ class _GuidelineCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Use public spaces, inspect items calmly, and keep communication inside UniTrade until the exchange is complete.',
+                  'Use public spaces, inspect items calmly, and keep communication inside UniSooq until the exchange is complete.',
                   style: AppTextStyles.bodyMedium,
                 ),
               ],

@@ -59,7 +59,7 @@ class AppDrawer extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'UniTrade',
+                  'UniSooq',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 24,

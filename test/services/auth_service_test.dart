@@ -3,7 +3,7 @@ import 'package:university_market/services/auth_service.dart';
 
 void main() {
   group('AuthService.isStudentEmail', () {
-    test('accepts valid Applied Science University student emails', () {
+    test('accepts valid Applied Science Private University student emails', () {
       expect(AuthService.isStudentEmail('student@students.asu.edu.jo'), isTrue);
       expect(AuthService.isStudentEmail('STUDENT@STUDENTS.ASU.EDU.JO'), isTrue);
     });

@@ -1,4 +1,4 @@
-/// Subscription-related constants for UniTrade.
+/// Subscription-related constants for UniSooq.
 class SubscriptionConstants {
   SubscriptionConstants._();
 

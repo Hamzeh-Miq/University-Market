@@ -20,18 +20,19 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppColors.radius),
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: AppColors.cardBackground,
+          color: cs.surface,
           borderRadius: BorderRadius.circular(AppColors.radius),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.45)),
+          border: Border.all(color: cs.outline.withValues(alpha: 0.45)),
           boxShadow: [
             BoxShadow(
-              color: AppColors.shadow,
+              color: Colors.black.withValues(alpha: 0.10),
               blurRadius: 18,
               offset: const Offset(0, 8),
             ),
@@ -90,15 +91,17 @@ class ProductCard extends StatelessWidget {
                     product.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.cardTitle,
+                    style: AppTextStyles.cardTitle.copyWith(
+                      color: cs.onSurface,
+                    ),
                   ),
                   const SizedBox(height: 7),
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.location_on_outlined,
                         size: 14,
-                        color: AppColors.textSecondary,
+                        color: cs.onSurfaceVariant,
                       ),
                       const SizedBox(width: 3),
                       Expanded(
@@ -106,7 +109,9 @@ class ProductCard extends StatelessWidget {
                           product.sellerUniversity ?? 'Campus marketplace',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.metadata,
+                          style: AppTextStyles.metadata.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     ],

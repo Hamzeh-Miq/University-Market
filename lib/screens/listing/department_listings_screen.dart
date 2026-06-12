@@ -89,18 +89,19 @@ class _DepartmentListingsScreenState
     final currentUid = authState.value?.uid;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         title: Text(
           widget.category,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        iconTheme: IconThemeData(
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.of(context).pushNamed(AppRoutes.addListing),
@@ -115,7 +116,7 @@ class _DepartmentListingsScreenState
         children: [
           // ── Sort chips ───────────────────────────────────────────
           Container(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: ProductSortOption.values.map((opt) {
@@ -131,7 +132,7 @@ class _DepartmentListingsScreenState
                       color: selected ? Colors.white : AppColors.textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
-                    backgroundColor: AppColors.background,
+
                     side: BorderSide(
                       color: selected ? AppColors.primary : AppColors.border,
                     ),
@@ -251,7 +252,7 @@ class _ProductListTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
@@ -307,10 +308,10 @@ class _ProductListTile extends StatelessWidget {
                       product.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),

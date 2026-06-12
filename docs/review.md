@@ -1,4 +1,4 @@
-# UniTrade Project Review
+# UniSooq Project Review
 
 Date: 2026-05-23
 
@@ -250,7 +250,7 @@ Files:
 
 Problem:
 
-- The only test is a stub that pumps a basic `MaterialApp` with a `Text('UniTrade')`.
+- The only test is a stub that pumps a basic `MaterialApp` with a `Text('UniSooq')`.
 - There are no visible tests for auth, services, providers, Firestore rules, routing, or gating flows.
 
 Why this matters:

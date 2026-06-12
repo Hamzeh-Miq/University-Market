@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use flutter-craft:flutter-executing to implement this plan task-by-task.
 
-**Goal:** Rework UniTrade's visual design layer into a premium Material 3 campus marketplace experience while preserving the existing layered architecture.
+**Goal:** Rework UniSooq's visual design layer into a premium Material 3 campus marketplace experience while preserving the existing layered architecture.
 
 **Architecture:** Existing layered Flutter architecture with Riverpod providers, services, models, screens, widgets, and constants.
 
@@ -76,7 +76,7 @@ flutter analyze
 - Modify: `lib/screens/home/home_screen.dart`
 
 **Implementation:**
-- Build bright app canvas with UniTrade header, saved/chat icon buttons, rounded search field, circular category badges, urgent deals carousel, new-listings banner, and trending product grid.
+- Build bright app canvas with UniSooq header, saved/chat icon buttons, rounded search field, circular category badges, urgent deals carousel, new-listings banner, and trending product grid.
 - Use existing providers and routes; do not add new routes.
 - Keep empty/loading/error states user-friendly.
 

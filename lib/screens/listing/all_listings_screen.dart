@@ -106,19 +106,20 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
     final hasAccess = isSubscribed || isAdmin;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         automaticallyImplyLeading: widget.offersOnly,
         title: Text(
           widget.offersOnly ? 'Special Offers' : 'Departments',
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        iconTheme: IconThemeData(
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
       ),
       bottomNavigationBar: const AppBottomNav(
         currentRoute: AppRoutes.allListings,
@@ -162,7 +163,7 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
           // ── Filter bar (gated for non-subscribers) ───────────────────────
           if (!widget.offersOnly && hasAccess)
             Container(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,7 +245,7 @@ class _AllListingsScreenState extends ConsumerState<AllListingsScreen> {
                 ),
               ),
               child: Container(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 14,
@@ -459,23 +460,24 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.background,
+          color: selected ? AppColors.primary : cs.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+            color: selected ? AppColors.primary : cs.outline,
             width: selected ? 1.5 : 1,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? Colors.white : AppColors.textSecondary,
+            color: selected ? Colors.white : cs.onSurface,
             fontWeight: FontWeight.w600,
             fontSize: 13,
           ),
@@ -504,6 +506,7 @@ class _ProductListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Dismissible(
       key: Key(product.productId),
       direction: isOwner ? DismissDirection.endToStart : DismissDirection.none,
@@ -527,7 +530,7 @@ class _ProductListTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
@@ -583,10 +586,10 @@ class _ProductListTile extends StatelessWidget {
                       product.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
-                        color: AppColors.textPrimary,
+                        color: cs.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
