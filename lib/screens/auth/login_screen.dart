@@ -360,8 +360,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   ),
                               obscureText: _obscurePassword,
                               validator: (v) {
-                                if (v == null || v.length < 6) {
-                                  return 'Password must be at least 6 characters.';
+                                if (v == null || v.length < 10) {
+                                  return 'Password must be at least 10 characters.';
                                 }
                                 return null;
                               },
